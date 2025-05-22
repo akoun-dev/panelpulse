@@ -1,0 +1,70 @@
+PanelPulse
+🎭 Rôles disponibles :
+Admin
+
+User (authentifié)
+
+Public (non authentifié, accès via QR Code)
+
+⚙️ Fonctionnalités par rôle
+👑 Admin
+Accès à tous les panels
+
+Vue des statistiques globales
+
+Gestion des utilisateurs
+
+👤 User (authentifié)
+Créer des panels
+
+Inviter d'autres utilisateurs (participants)
+
+Voir les panels créés ou auxquels ils participent
+
+Ajouter des questions au panel
+
+Voter sur les questions (optionnel)
+
+🌐 Public (anonyme, via QR Code)
+Accès simplifié à un panel via un lien ou QR Code
+
+Soumettre des questions
+
+Voter pour les meilleures questions
+
+Aucune authentification requise
+
+Accès limité à un panel spécifique
+
+📊 Modèle de Données (Supabase – mise à jour)
+Nouvelle table : public_access_tokens
+Permet d’accéder à un panel spécifique via QR Code, sans authentification.
+
+id	panel_id	token	expires_at	created_at
+UUID	FK (panels.id)	string (UUID ou hash)	timestamp	timestamp
+
+Adaptation des questions
+Ajouter un champ is_anonymous pour les questions soumises par le public.
+
+is_anonymous	bool
+true / false	
+
+🖼️ Mise à jour des Interfaces
+Interface publique (accès via QR Code)
+Affichage minimaliste
+
+Nom du panel
+
+Liste des questions
+
+Formulaire de soumission anonyme
+
+Bouton de vote (1 vote / question / IP ou via cookie)
+
+🧠 Sécurité côté public
+Token unique pour chaque panel
+
+Option d’expiration automatique des liens publics
+
+Rate limiting ou CAPTCHA pour prévenir l’abus
+
