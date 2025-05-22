@@ -22,3 +22,17 @@ export interface Invitation {
   status: 'pending' | 'accepted' | 'rejected';
   createdAt: string;
 }
+
+export interface Activity {
+  id: string;
+  timestamp: string;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  type: 'create' | 'update' | 'delete';
+  action: string;
+  target: string;
+  details?: Record<string, unknown>;
+}

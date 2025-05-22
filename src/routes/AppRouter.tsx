@@ -4,8 +4,8 @@ import HomePage from '../pages/HomePage';
 import LoginPage from '../pages/auth/Login';
 import RegisterPage from '../pages/auth/Register';
 import ForgotPasswordPage from '../pages/auth/ForgotPassword';
-import AdminDashboard from '../pages/admin/Dashboard';
-import UserDashboard from '../pages/user/Dashboard';
+import AdminDashboard from '../pages/admin/AdminDashboard';
+import UserDashboard from '../pages/user/UserDashboard';
 import NotFound from '../pages/NotFound';
 
 export const router = createBrowserRouter([

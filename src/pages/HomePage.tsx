@@ -18,7 +18,7 @@ const HomePage: FC = () => {
             Gestion simplifiée de vos panels et conférences
           </h1>
           <p className="mt-6 max-w-3xl mx-auto text-xl text-purple-100">
-            Une solution complète pour administrateurs, modérateurs, panélistes et public avec des fonctionnalités adaptées à chaque rôle.
+            Une solution complète pour, modérateurs, panélistes et public avec des fonctionnalités adaptées à chaque rôle.
           </p>
           <div className="mt-10 flex justify-center space-x-4">
             <Link to="/register" className="flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-purple-700 bg-white hover:bg-purple-50 md:py-4 md:text-lg md:px-10">
@@ -40,7 +40,7 @@ const HomePage: FC = () => {
               Des fonctionnalités adaptées à votre rôle
             </p>
             <p className="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
-              PanelPulse offre une expérience personnalisée selon que vous soyez administrateur, modérateur, panéliste ou membre du public.
+              PanelPulse offre une expérience personnalisée selon que vous soyez modérateur, panéliste ou membre du public.
             </p>
           </div>
 

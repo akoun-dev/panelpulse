@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../hooks/useAuth'; // À créer
-import AdminDashboard from './admin/Dashboard';
-import UserDashboard from './user/Dashboard';
+import AdminDashboard from './admin/AdminDashboard';
+import UserDashboard from './user/UserDashboard';
 
 const HomePage = () => {
   const { user } = useAuth(); // Hook d'authentification à implémenter
