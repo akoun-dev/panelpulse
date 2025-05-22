@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { useAuth } from '../hooks/useAuth'; // À créer
 import AdminDashboard from './admin/AdminDashboard';
 import UserDashboard from './user/UserDashboard';

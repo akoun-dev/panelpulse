@@ -13,6 +13,7 @@ export interface Panel {
   createdAt: string;
   updatedAt: string;
   ownerId: string;
+  status: 'draft' | 'active' | 'completed' | 'archived';
 }
 
 export interface Invitation {
@@ -21,6 +22,20 @@ export interface Invitation {
   email: string;
   status: 'pending' | 'accepted' | 'rejected';
   createdAt: string;
+}
+
+export interface Question {
+  id: string;
+  text: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt?: string;
+}
+
+export interface Speaker {
+  id: string;
+  name: string;
+  timeUsed: number; // en secondes
+  role?: string;
 }
 
 export interface Activity {
