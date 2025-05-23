@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -9,8 +9,16 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { User, Mail, Briefcase, MapPin, Calendar, Edit, Save, Upload, MessageSquare, Users, Plus, Clock } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { useAuth } from '@/hooks/useAuth'
+import {
+  getCurrentUserProfile,
+  updateUserProfile,
+  updateUserAvatar,
+  UserProfile as UserProfileType,
+  UserProfileUpdate
+} from '@/services/userService'
 
-// Interface pour les données utilisateur
+// Interface pour les données utilisateur adaptée à partir du service
 interface UserData {
   id: string
   name: string
@@ -41,37 +49,61 @@ export default function UserProfile() {
   const [editedData, setEditedData] = useState<Partial<UserData>>({})
   const [loading, setLoading] = useState(true)
 
-  // Charger les données utilisateur
+  // Référence pour le champ de téléchargement d'avatar
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
+
+  // Charger les données utilisateur depuis Supabase
   useEffect(() => {
-    setLoading(true)
-    // Simuler un appel API
-    setTimeout(() => {
-      // Données fictives
-      setUserData({
-        id: 'user-123',
-        name: 'Sophie Martin',
-        email: 'sophie.martin@example.com',
-        avatar: '',
-        company: 'TechCorp',
-        role: 'Directrice Innovation',
-        location: 'Paris, France',
-        bio: 'Experte en innovation et stratégies digitales avec plus de 10 ans d\'expérience dans le secteur technologique. Passionnée par l\'IA et les nouvelles technologies.',
-        joinedDate: '2023-05-15',
-        panelsCreated: 12,
-        panelsParticipated: 8,
-        questionsAnswered: 45,
-        totalSpeakingTime: 320,
-        expertise: ['Marketing Digital', 'Intelligence Artificielle', 'Innovation Produit', 'Stratégie Digitale'],
-        languages: ['Français', 'Anglais', 'Espagnol'],
-        socialLinks: {
-          linkedin: 'https://linkedin.com/in/sophiemartin',
-          twitter: 'https://twitter.com/sophiemartin',
-          website: 'https://sophiemartin.com'
+    const loadUserProfile = async () => {
+      setLoading(true);
+      try {
+        const profile = await getCurrentUserProfile();
+
+        if (profile) {
+          // Convertir le format du profil Supabase au format attendu par le composant
+          setUserData({
+            id: profile.id,
+            name: profile.name,
+            email: profile.email,
+            avatar: profile.avatar_url,
+            company: profile.company,
+            role: profile.role,
+            location: profile.location,
+            bio: profile.bio,
+            joinedDate: profile.joined_date,
+            panelsCreated: profile.panels_created,
+            panelsParticipated: profile.panels_participated,
+            questionsAnswered: profile.questions_answered,
+            totalSpeakingTime: profile.total_speaking_time,
+            expertise: profile.expertise || [],
+            languages: profile.languages || [],
+            socialLinks: profile.social_links || {}
+          });
+        } else {
+          // Afficher un message d'erreur si le profil n'a pas pu être chargé
+          toast({
+            title: "Erreur",
+            description: "Impossible de charger votre profil. Veuillez réessayer.",
+            variant: "destructive"
+          });
         }
-      })
-      setLoading(false)
-    }, 800)
-  }, [])
+      } catch (error) {
+        console.error("Erreur lors du chargement du profil:", error);
+        toast({
+          title: "Erreur",
+          description: "Une erreur est survenue lors du chargement de votre profil.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      loadUserProfile();
+    }
+  }, [user, toast]);
 
   // Démarrer l'édition du profil
   const handleEdit = () => {
@@ -80,17 +112,64 @@ export default function UserProfile() {
   }
 
   // Sauvegarder les modifications
-  const handleSave = () => {
+  const handleSave = async () => {
     if (userData && editedData) {
-      const updatedData = { ...userData, ...editedData }
-      setUserData(updatedData)
-      setIsEditing(false)
+      try {
+        // Préparer les données pour la mise à jour
+        const updateData: UserProfileUpdate = {
+          name: editedData.name,
+          company: editedData.company,
+          role: editedData.role,
+          location: editedData.location,
+          bio: editedData.bio,
+          social_links: editedData.socialLinks,
+          expertise: editedData.expertise,
+          languages: editedData.languages
+        };
 
-      // Simuler un appel API pour sauvegarder les données
-      toast({
-        title: "Profil mis à jour",
-        description: "Vos informations ont été enregistrées avec succès.",
-      })
+        // Appeler le service pour mettre à jour le profil
+        const updatedProfile = await updateUserProfile(userData.id, updateData);
+
+        if (updatedProfile) {
+          // Convertir le format du profil Supabase au format attendu par le composant
+          setUserData({
+            id: updatedProfile.id,
+            name: updatedProfile.name,
+            email: updatedProfile.email,
+            avatar: updatedProfile.avatar_url,
+            company: updatedProfile.company,
+            role: updatedProfile.role,
+            location: updatedProfile.location,
+            bio: updatedProfile.bio,
+            joinedDate: updatedProfile.joined_date,
+            panelsCreated: updatedProfile.panels_created,
+            panelsParticipated: updatedProfile.panels_participated,
+            questionsAnswered: updatedProfile.questions_answered,
+            totalSpeakingTime: updatedProfile.total_speaking_time,
+            expertise: updatedProfile.expertise || [],
+            languages: updatedProfile.languages || [],
+            socialLinks: updatedProfile.social_links || {}
+          });
+
+          setIsEditing(false);
+
+          toast({
+            title: "Profil mis à jour",
+            description: "Vos informations ont été enregistrées avec succès."
+          });
+        } else {
+          toast({
+            title: "Erreur",
+            description: "Impossible de mettre à jour votre profil. Veuillez réessayer."
+          });
+        }
+      } catch (error) {
+        console.error("Erreur lors de la mise à jour du profil:", error);
+        toast({
+          title: "Erreur",
+          description: "Une erreur est survenue lors de la mise à jour de votre profil."
+        });
+      }
     }
   }
 
@@ -104,6 +183,64 @@ export default function UserProfile() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setEditedData(prev => ({ ...prev, [name]: value }))
+  }
+
+  // Gérer le téléchargement d'avatar
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && userData) {
+      const file = e.target.files[0];
+
+      // Vérifier le type de fichier
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Type de fichier non valide",
+          description: "Veuillez sélectionner une image (JPG, PNG, etc.)."
+        });
+        return;
+      }
+
+      // Vérifier la taille du fichier (max 2 Mo)
+      if (file.size > 2 * 1024 * 1024) {
+        toast({
+          title: "Fichier trop volumineux",
+          description: "La taille de l'image ne doit pas dépasser 2 Mo."
+        });
+        return;
+      }
+
+      try {
+        // Télécharger l'avatar
+        const avatarUrl = await updateUserAvatar(userData.id, file);
+
+        if (avatarUrl) {
+          // Mettre à jour l'avatar dans les données utilisateur
+          setUserData(prev => prev ? { ...prev, avatar: avatarUrl } : null);
+
+          toast({
+            title: "Avatar mis à jour",
+            description: "Votre photo de profil a été mise à jour avec succès."
+          });
+        } else {
+          toast({
+            title: "Erreur",
+            description: "Impossible de mettre à jour votre photo de profil. Veuillez réessayer."
+          });
+        }
+      } catch (error) {
+        console.error("Erreur lors du téléchargement de l'avatar:", error);
+        toast({
+          title: "Erreur",
+          description: "Une erreur est survenue lors du téléchargement de votre photo de profil."
+        });
+      }
+    }
+  }
+
+  // Déclencher le dialogue de sélection de fichier
+  const triggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   }
 
   // Formater la date
@@ -184,10 +321,24 @@ export default function UserProfile() {
                     </AvatarFallback>
                   </Avatar>
                   {isEditing && (
-                    <Button size="sm" variant="outline" className="absolute -bottom-2 -right-2 rounded-full h-8 w-8 p-0">
-                      <Upload className="h-4 w-4" />
-                      <span className="sr-only">Changer la photo</span>
-                    </Button>
+                    <>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleAvatarUpload}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="absolute -bottom-2 -right-2 rounded-full h-8 w-8 p-0"
+                        onClick={triggerFileInput}
+                      >
+                        <Upload className="h-4 w-4" />
+                        <span className="sr-only">Changer la photo</span>
+                      </Button>
+                    </>
                   )}
                 </div>
 

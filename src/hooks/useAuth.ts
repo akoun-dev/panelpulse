@@ -1,17 +1,5 @@
-import { useState, useEffect } from 'react';
-import { User } from '@/types';
+// Ce fichier est maintenant un simple re-export du hook useAuth du contexte
+// pour maintenir la compatibilité avec le code existant
+import { useAuth as useAuthFromContext } from '@/contexts/AuthContext';
 
-export const useAuth = () => {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    // À implémenter : logique pour récupérer l'utilisateur connecté
-    // Par exemple depuis localStorage ou une API
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
-
-  return { user };
-};
+export const useAuth = useAuthFromContext;

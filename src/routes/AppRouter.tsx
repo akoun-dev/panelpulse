@@ -25,6 +25,7 @@ import NotFound from '../pages/NotFound';
 import UserLayout from '@/components/layout/user/UserLayout';
 import AudienceLayout from '../pages/audience/AudienceLayout';
 import AudienceView from '../pages/audience/AudienceView';
+import RedirectIfAuthenticated from '@/components/auth/RedirectIfAuthenticated';
 
 export const router = createBrowserRouter([
   {
@@ -37,16 +38,16 @@ export const router = createBrowserRouter([
         element: <HomePage />,
       },
       {
-        path: 'login',
-        element: <LoginPage />
+        path: 'auth/login',
+        element: <RedirectIfAuthenticated><LoginPage /></RedirectIfAuthenticated>
       },
       {
-        path: 'register',
-        element: <RegisterPage />
+        path: 'auth/register',
+        element: <RedirectIfAuthenticated><RegisterPage /></RedirectIfAuthenticated>
       },
       {
-        path: 'forgot-password',
-        element: <ForgotPasswordPage />
+        path: 'auth/forgot-password',
+        element: <RedirectIfAuthenticated><ForgotPasswordPage /></RedirectIfAuthenticated>
       }
     ]
   },

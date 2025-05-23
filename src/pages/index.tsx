@@ -8,7 +8,7 @@ const HomePage = () => {
 
   if (!user) {
     // Rediriger vers la page de login si non connecté
-    window.location.href = '/auth/login';
+    window.location.href = '/login';
     return null;
   }
 
