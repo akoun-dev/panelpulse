@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { formatISOToDatetimeLocal, formatDatetimeLocalToISO } from '@/utils/dateUtils'
 import {
   Plus,
   Trash2,
@@ -19,7 +20,9 @@ import {
   Layers,
   Eye,
   PanelLeft,
-  PanelRight
+  PanelRight,
+  Save,
+  Edit
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
@@ -28,10 +31,24 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Progress } from '@/components/ui/progress'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { useToast } from '@/components/ui/use-toast'
+import { createPanel, updatePanel, getPanelForEdit, PanelInput } from '@/services/panelService'
+import { useAuth } from '@/hooks/useAuth'
+
+// Interface pour les props du composant
+interface UserCreatePanelProps {
+  isEditMode?: boolean;
+  panelId?: string;
+}
 
 export default function UserCreatePanel() {
   const { toast } = useToast()
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const { panelId } = useParams<{ panelId: string }>()
+  const location = useLocation()
+
+  // Déterminer si nous sommes en mode édition
+  const isEditMode = location.pathname.includes('/edit')
 
   // États du formulaire
   const [title, setTitle] = useState('')
@@ -79,6 +96,71 @@ export default function UserCreatePanel() {
       setExpandedSection(section);
     }
   }
+
+  // Charger les données du panel en mode édition
+  useEffect(() => {
+    const loadPanelData = async () => {
+      if (isEditMode && panelId) {
+        try {
+          setIsSaving(true);
+          const panelData = await getPanelForEdit(panelId);
+
+          if (panelData) {
+            // Mettre à jour les états avec les données du panel
+            setTitle(panelData.title);
+            setDescription(panelData.description);
+            // Formater la date ISO en format datetime-local
+            setDate(formatISOToDatetimeLocal(panelData.date));
+            setDuration(panelData.duration);
+
+            // Mettre à jour les panélistes
+            if (panelData.panelists && panelData.panelists.length > 0) {
+              setPanelists(panelData.panelists);
+            }
+
+            // Mettre à jour les segments
+            if (panelData.segments && panelData.segments.length > 0) {
+              setSegments(panelData.segments);
+            }
+
+            // Mettre à jour les questions préparées
+            if (panelData.preparedQA && panelData.preparedQA.length > 0) {
+              setPreparedQA(panelData.preparedQA);
+            }
+
+            // Mettre à jour les ressources
+            if (panelData.resources && panelData.resources.length > 0) {
+              setResources(panelData.resources);
+            }
+
+            toast({
+              title: "Panel chargé",
+              description: "Les données du panel ont été chargées avec succès."
+            });
+          } else {
+            toast({
+              title: "Erreur",
+              description: "Impossible de charger les données du panel.",
+              variant: "destructive"
+            });
+            navigate('/user/my-panels');
+          }
+        } catch (error) {
+          console.error('Erreur lors du chargement du panel:', error);
+          toast({
+            title: "Erreur",
+            description: "Une erreur est survenue lors du chargement du panel.",
+            variant: "destructive" as any
+          });
+          navigate('/user/my-panels');
+        } finally {
+          setIsSaving(false);
+        }
+      }
+    };
+
+    loadPanelData();
+  }, [isEditMode, panelId, navigate, toast]);
 
   // Calculer la progression du formulaire en fonction des données remplies
   useEffect(() => {
@@ -200,59 +282,151 @@ export default function UserCreatePanel() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!isFormValid()) {
       toast({
         title: "Formulaire incomplet",
-        description: "Veuillez remplir tous les champs obligatoires avant de créer le panel."
+        description: "Veuillez remplir tous les champs obligatoires avant de " + (isEditMode ? "modifier" : "créer") + " le panel."
       });
       return;
     }
 
     setIsSaving(true);
 
-    // Filtrer les questions/réponses vides et ajouter le nom du panéliste
-    const filteredQA = preparedQA
-      .filter(qa => qa.question.trim() !== '' && qa.panelistId !== '')
-      .map(qa => {
-        const panelistIndex = parseInt(qa.panelistId);
-        const panelist = panelists[panelistIndex];
-        return {
-          ...qa,
-          panelistName: panelist?.name || ''
+    try {
+      // Construire l'objet panel à envoyer à l'API
+      const panelInput: PanelInput = {
+        title,
+        description,
+        // Convertir la date locale en format ISO
+        date: formatDatetimeLocalToISO(date),
+        duration,
+        panelists: panelists.filter(p => p.name && p.email).map(p => ({
+          name: p.name,
+          email: p.email,
+          role: p.role,
+          company: p.company,
+          timeAllocated: p.timeAllocated
+        })),
+        segments: segments.filter(s => s.name && s.duration > 0).map(s => ({
+          name: s.name,
+          duration: s.duration
+        })),
+        preparedQA: preparedQA
+          .filter(qa => qa.question.trim() !== '' && qa.panelistId !== '')
+          .map(qa => ({
+            question: qa.question,
+            answer: qa.answer,
+            panelistId: qa.panelistId
+          })),
+        resources: resources.map(r => ({
+          name: r.name,
+          type: r.type,
+          file: r.file
+        })),
+        status: 'published' // Ou 'draft' si vous voulez enregistrer comme brouillon
+      };
+
+      let result;
+
+      if (isEditMode && panelId) {
+        // Mettre à jour le panel existant
+        // Extraire les données de base du panel
+        const panelBasicData = {
+          title: panelInput.title,
+          description: panelInput.description,
+          date: panelInput.date, // Déjà converti en format ISO
+          duration: panelInput.duration,
+          status: panelInput.status
         };
-      });
 
-    // Construire l'objet panel à envoyer à l'API
-    const panelData = {
-      title,
-      description,
-      date,
-      duration,
-      panelists: panelists.filter(p => p.name && p.email), // Filtrer les panélistes vides
-      segments: segments.filter(s => s.name && s.duration > 0), // Filtrer les segments vides
-      resources,
-      preparedQA: filteredQA,
-      createdAt: new Date().toISOString(),
-      status: 'draft'
-    };
+        // Extraire les données des panélistes
+        const panelistsData = panelInput.panelists.map(p => ({
+          name: p.name,
+          email: p.email,
+          role: p.role,
+          company: p.company,
+          time_allocated: p.timeAllocated
+        }));
 
-    // TODO: Implémenter l'appel API pour sauvegarder le panel
-    console.log('Données du panel à enregistrer:', panelData);
+        // Extraire les données des segments
+        const segmentsData = panelInput.segments.map(s => ({
+          name: s.name,
+          duration: s.duration
+        }));
 
-    // Simuler un délai d'enregistrement
-    setTimeout(() => {
-      setIsSaving(false);
+        // Extraire les données des questions préparées
+        const preparedQuestionsData = panelInput.preparedQA
+          .filter(qa => qa.question.trim() !== '')
+          .map(qa => {
+            // Trouver le panéliste correspondant
+            const panelistIndex = parseInt(qa.panelistId);
+            const panelist = panelistIndex >= 0 ? panelInput.panelists[panelistIndex] : null;
 
+            return {
+              question: qa.question,
+              answer: qa.answer,
+              panelist_id: panelist ? panelist.email : '' // Utiliser l'email comme identifiant, jamais null
+            };
+          });
+
+        // Extraire les données des ressources
+        const resourcesData = panelInput.resources.map(r => ({
+          name: r.name,
+          type: r.type,
+          file: r.file
+        }));
+
+        // Appeler la fonction updatePanel avec les données séparées
+        result = await updatePanel(
+          panelId,
+          panelBasicData,
+          panelistsData,
+          preparedQuestionsData,
+          resourcesData,
+          segmentsData
+        );
+
+        if (result.success) {
+          toast({
+            title: "Panel mis à jour avec succès",
+            description: "Votre panel a été mis à jour et est prêt à être utilisé.",
+          });
+        }
+      } else {
+        // Créer un nouveau panel
+        result = await createPanel(panelInput);
+
+        if (result.success) {
+          toast({
+            title: "Panel créé avec succès",
+            description: "Votre panel a été créé et est prêt à être utilisé.",
+          });
+        }
+      }
+
+      if (result && result.success) {
+        // Rediriger vers la page des panels
+        navigate('/user/my-panels');
+      } else if (result) {
+        toast({
+          title: "Erreur",
+          description: result.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error(`Erreur lors de la ${isEditMode ? 'modification' : 'création'} du panel:`, error);
       toast({
-        title: "Panel créé avec succès",
-        description: "Votre panel a été créé et est prêt à être utilisé.",
+        title: "Erreur",
+        description: `Une erreur est survenue lors de la ${isEditMode ? 'modification' : 'création'} du panel.`,
+        variant: "destructive"
       });
-
-      navigate('/user/my-panels');
-    }, 1500);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Composant de prévisualisation du panel
@@ -397,7 +571,9 @@ export default function UserCreatePanel() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold">Créer un nouveau panel</h1>
+              <h1 className="text-xl font-bold">
+                {isEditMode ? "Modifier le panel" : "Créer un nouveau panel"}
+              </h1>
               <p className="text-primary-foreground/80 text-sm">
                 Vous êtes le modérateur de ce panel
               </p>
@@ -965,12 +1141,79 @@ export default function UserCreatePanel() {
                       variant="outline"
                       className="px-6 hidden md:flex"
                       disabled={isSaving}
-                      onClick={() => {
-                        // Enregistrer comme brouillon
-                        toast({
-                          title: "Brouillon enregistré",
-                          description: "Votre panel a été sauvegardé comme brouillon."
-                        });
+                      onClick={async () => {
+                        // Vérifier les champs minimaux requis
+                        if (!title.trim()) {
+                          toast({
+                            title: "Titre requis",
+                            description: "Veuillez au moins saisir un titre pour enregistrer comme brouillon."
+                          });
+                          return;
+                        }
+
+                        setIsSaving(true);
+
+                        try {
+                          // Construire l'objet panel à envoyer à l'API
+                          const panelInput: PanelInput = {
+                            title,
+                            description,
+                            date: date || new Date().toISOString(),
+                            duration: duration || 30,
+                            panelists: panelists.filter(p => p.name && p.email).map(p => ({
+                              name: p.name,
+                              email: p.email,
+                              role: p.role,
+                              company: p.company,
+                              timeAllocated: p.timeAllocated
+                            })),
+                            segments: segments.filter(s => s.name && s.duration > 0).map(s => ({
+                              name: s.name,
+                              duration: s.duration
+                            })),
+                            preparedQA: preparedQA
+                              .filter(qa => qa.question.trim() !== '')
+                              .map(qa => ({
+                                question: qa.question,
+                                answer: qa.answer,
+                                panelistId: qa.panelistId
+                              })),
+                            resources: resources.map(r => ({
+                              name: r.name,
+                              type: r.type,
+                              file: r.file
+                            })),
+                            status: 'draft'
+                          };
+
+                          // Appeler le service pour créer le panel
+                          const result = await createPanel(panelInput);
+
+                          if (result.success) {
+                            toast({
+                              title: "Brouillon enregistré",
+                              description: "Votre panel a été sauvegardé comme brouillon."
+                            });
+
+                            // Rediriger vers la page des panels
+                            navigate('/user/my-panels');
+                          } else {
+                            toast({
+                              title: "Erreur",
+                              description: result.message,
+                              variant: "destructive"
+                            });
+                          }
+                        } catch (error) {
+                          console.error('Erreur lors de l\'enregistrement du brouillon:', error);
+                          toast({
+                            title: "Erreur",
+                            description: "Une erreur est survenue lors de l'enregistrement du brouillon.",
+                            variant: "destructive"
+                          });
+                        } finally {
+                          setIsSaving(false);
+                        }
                       }}
                     >
                       Enregistrer comme brouillon
@@ -983,12 +1226,12 @@ export default function UserCreatePanel() {
                       {isSaving ? (
                         <>
                           <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
-                          Enregistrement...
+                          {isEditMode ? "Mise à jour..." : "Enregistrement..."}
                         </>
                       ) : (
                         <>
                           <Check className="h-4 w-4 mr-2" />
-                          Créer le panel
+                          {isEditMode ? "Mettre à jour le panel" : "Créer le panel"}
                         </>
                       )}
                     </Button>

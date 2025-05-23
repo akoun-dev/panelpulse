@@ -2,19 +2,17 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { User, Mail, Briefcase, MapPin, Calendar, Edit, Save, Upload, MessageSquare, Users, Plus, Clock } from 'lucide-react'
+import { Mail, Briefcase, MapPin, Calendar, Edit, Save, Upload, MessageSquare, Users, Plus, Clock } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { useAuth } from '@/hooks/useAuth'
 import {
   getCurrentUserProfile,
   updateUserProfile,
   updateUserAvatar,
-  UserProfile as UserProfileType,
   UserProfileUpdate
 } from '@/services/userService'
 
@@ -85,7 +83,7 @@ export default function UserProfile() {
           toast({
             title: "Erreur",
             description: "Impossible de charger votre profil. Veuillez réessayer.",
-            variant: "destructive"
+            variant: "destructive" as any
           });
         }
       } catch (error) {
@@ -93,7 +91,7 @@ export default function UserProfile() {
         toast({
           title: "Erreur",
           description: "Une erreur est survenue lors du chargement de votre profil.",
-          variant: "destructive"
+          variant: "destructive" as any
         });
       } finally {
         setLoading(false);
@@ -160,14 +158,16 @@ export default function UserProfile() {
         } else {
           toast({
             title: "Erreur",
-            description: "Impossible de mettre à jour votre profil. Veuillez réessayer."
+            description: "Impossible de mettre à jour votre profil. Veuillez réessayer.",
+            variant: "destructive" as any
           });
         }
       } catch (error) {
         console.error("Erreur lors de la mise à jour du profil:", error);
         toast({
           title: "Erreur",
-          description: "Une erreur est survenue lors de la mise à jour de votre profil."
+          description: "Une erreur est survenue lors de la mise à jour de votre profil.",
+          variant: "destructive" as any
         });
       }
     }
@@ -194,7 +194,8 @@ export default function UserProfile() {
       if (!file.type.startsWith('image/')) {
         toast({
           title: "Type de fichier non valide",
-          description: "Veuillez sélectionner une image (JPG, PNG, etc.)."
+          description: "Veuillez sélectionner une image (JPG, PNG, etc.).",
+          variant: "destructive" as any
         });
         return;
       }
@@ -203,7 +204,8 @@ export default function UserProfile() {
       if (file.size > 2 * 1024 * 1024) {
         toast({
           title: "Fichier trop volumineux",
-          description: "La taille de l'image ne doit pas dépasser 2 Mo."
+          description: "La taille de l'image ne doit pas dépasser 2 Mo.",
+          variant: "destructive" as any
         });
         return;
       }
@@ -223,14 +225,16 @@ export default function UserProfile() {
         } else {
           toast({
             title: "Erreur",
-            description: "Impossible de mettre à jour votre photo de profil. Veuillez réessayer."
+            description: "Impossible de mettre à jour votre photo de profil. Veuillez réessayer.",
+            variant: "destructive" as any
           });
         }
       } catch (error) {
         console.error("Erreur lors du téléchargement de l'avatar:", error);
         toast({
           title: "Erreur",
-          description: "Une erreur est survenue lors du téléchargement de votre photo de profil."
+          description: "Une erreur est survenue lors du téléchargement de votre photo de profil.",
+          variant: "destructive" as any
         });
       }
     }
@@ -493,36 +497,138 @@ export default function UserProfile() {
             <CardContent className="space-y-6">
               <div>
                 <h3 className="text-sm font-medium mb-3">Domaines d'expertise</h3>
-                <div className="flex flex-wrap gap-2">
-                  {userData.expertise.map((item, index) => (
-                    <Badge key={index} variant="secondary">
-                      {item}
-                    </Badge>
-                  ))}
-                  {isEditing && (
-                    <Button variant="outline" size="sm" className="h-6">
-                      <Plus className="h-3 w-3 mr-1" />
-                      Ajouter
-                    </Button>
-                  )}
-                </div>
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {editedData.expertise?.map((item, index) => (
+                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                          {item}
+                          <button
+                            onClick={() => {
+                              const newExpertise = [...(editedData.expertise || [])];
+                              newExpertise.splice(index, 1);
+                              setEditedData(prev => ({ ...prev, expertise: newExpertise }));
+                            }}
+                            className="ml-1 rounded-full hover:bg-primary/20 p-1"
+                          >
+                            <span className="sr-only">Supprimer</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="18" y1="6" x2="6" y2="18"></line>
+                              <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Nouvelle expertise"
+                        className="max-w-xs"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                            const newExpertise = [...(editedData.expertise || []), e.currentTarget.value.trim()];
+                            setEditedData(prev => ({ ...prev, expertise: newExpertise }));
+                            e.currentTarget.value = '';
+                          }
+                        }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          const input = e.currentTarget.previousSibling as HTMLInputElement;
+                          if (input && input.value.trim()) {
+                            const newExpertise = [...(editedData.expertise || []), input.value.trim()];
+                            setEditedData(prev => ({ ...prev, expertise: newExpertise }));
+                            input.value = '';
+                          }
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Ajouter
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {userData.expertise.map((item, index) => (
+                      <Badge key={index} variant="secondary">
+                        {item}
+                      </Badge>
+                    ))}
+                    {userData.expertise.length === 0 && (
+                      <span className="text-sm text-muted-foreground">Aucune expertise ajoutée</span>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>
                 <h3 className="text-sm font-medium mb-3">Langues</h3>
-                <div className="flex flex-wrap gap-2">
-                  {userData.languages.map((language, index) => (
-                    <Badge key={index} variant="outline">
-                      {language}
-                    </Badge>
-                  ))}
-                  {isEditing && (
-                    <Button variant="outline" size="sm" className="h-6">
-                      <Plus className="h-3 w-3 mr-1" />
-                      Ajouter
-                    </Button>
-                  )}
-                </div>
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {editedData.languages?.map((language, index) => (
+                        <Badge key={index} variant="outline" className="flex items-center gap-1">
+                          {language}
+                          <button
+                            onClick={() => {
+                              const newLanguages = [...(editedData.languages || [])];
+                              newLanguages.splice(index, 1);
+                              setEditedData(prev => ({ ...prev, languages: newLanguages }));
+                            }}
+                            className="ml-1 rounded-full hover:bg-muted p-1"
+                          >
+                            <span className="sr-only">Supprimer</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="18" y1="6" x2="6" y2="18"></line>
+                              <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Nouvelle langue"
+                        className="max-w-xs"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                            const newLanguages = [...(editedData.languages || []), e.currentTarget.value.trim()];
+                            setEditedData(prev => ({ ...prev, languages: newLanguages }));
+                            e.currentTarget.value = '';
+                          }
+                        }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          const input = e.currentTarget.previousSibling as HTMLInputElement;
+                          if (input && input.value.trim()) {
+                            const newLanguages = [...(editedData.languages || []), input.value.trim()];
+                            setEditedData(prev => ({ ...prev, languages: newLanguages }));
+                            input.value = '';
+                          }
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Ajouter
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {userData.languages.map((language, index) => (
+                      <Badge key={index} variant="outline">
+                        {language}
+                      </Badge>
+                    ))}
+                    {userData.languages.length === 0 && (
+                      <span className="text-sm text-muted-foreground">Aucune langue ajoutée</span>
+                    )}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

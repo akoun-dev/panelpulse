@@ -11,22 +11,22 @@ import { faComments } from '@fortawesome/free-solid-svg-icons'
 
 const navItems = [
   {
-    name: 'Dashboard',
+    name: 'TABLEAU DE BORD',
     href: '/user/dashboard',
     icon: LayoutDashboard
   },
   {
-    name: 'Mes Panels',
+    name: 'MES PANELS',
     href: '/user/my-panels',
     icon: MessageSquare
   },
   {
-    name: 'Invitations',
+    name: 'MES INVITATIONS',
     href: '/user/invitations',
     icon: Users
   },
   {
-    name: 'Paramètres',
+    name: 'PARAMETRES',
     href: '/user/settings',
     icon: Settings
   }

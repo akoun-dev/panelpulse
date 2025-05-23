@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useLoaderData } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -11,6 +11,7 @@ import {
   Video,
   Download
 } from 'lucide-react'
+import { getPublicPanelDetails, addPublicQuestion, voteForQuestion } from '@/services/panelService'
 
 // Types pour les données du panel (définition des structures de données)
 interface Panelist {
@@ -44,6 +45,7 @@ interface Panel {
   moderator: {
     name: string
     role: string
+    company?: string
     initials?: string
   }
   startTime: string
@@ -65,139 +67,90 @@ interface Panel {
  */
 export default function AudienceView() {
   const { panelId } = useParams<{ panelId: string }>()
+  const loaderData = useLoaderData() as { panelData?: any, panelId?: string }
   const { toast } = useToast()
   const [panel, setPanel] = useState<Panel | null>(null)
   const [newQuestion, setNewQuestion] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
-  // Charger les données du panel depuis l'API (simulation avec des données fictives pour le moment)
+  // Charger les données du panel depuis le loader ou l'API si nécessaire
   useEffect(() => {
-    const fetchPanelData = async () => {
-      setLoading(true)
+    const initializePanel = async () => {
+      setLoading(true);
+
       try {
-        // TODO: Remplacer par un appel API réel
-        // Simuler un délai de chargement
-        setTimeout(() => {
-          // Données fictives pour le panel
-          const mockPanel: Panel = {
-            id: panelId || '1',
-            title: 'Innovations et Défis Technologiques 2023',
-            description: 'Discussion sur les avancées technologiques récentes et les défis à venir',
-            moderator: {
-              name: 'Philippe Laurent',
-              role: 'Journaliste Tech',
-              initials: 'PL'
-            },
-            startTime: '15:30',
-            endTime: '16:15',
-            currentSpeaker: {
-              id: '1',
-              name: 'Sophie Martin',
-              role: 'Directrice Innovation',
-              company: 'TechCorp',
-              status: 'active'
-            },
-            panelists: [
-              {
-                id: '1',
-                name: 'Sophie Martin',
-                role: 'Directrice Innovation',
-                company: 'TechCorp',
-                status: 'active'
-              },
-              {
-                id: '2',
-                name: 'Jean Dupont',
-                role: 'CEO',
-                company: 'StartupNext',
-                status: 'inactive'
-              },
-              {
-                id: '3',
-                name: 'Marie Leclerc',
-                role: 'Directrice R&D',
-                company: 'InnoLab',
-                status: 'inactive'
-              },
-              {
-                id: '4',
-                name: 'Pierre Moreau',
-                role: 'CTO',
-                company: 'TechFuture',
-                status: 'inactive'
-              }
-            ],
-            questions: [
-              {
-                id: '1',
-                text: 'Comment les modèles d\'innovation ouverte peuvent-ils être adaptés pour les PME avec des ressources limitées?',
-                author: 'Marie D.',
-                score: 38,
-                status: 'approved',
-                createdAt: new Date(Date.now() - 120000).toISOString(),
-                voted: false,
-                timeAgo: 'il y a 2 min'
-              },
-              {
-                id: '2',
-                text: 'Quels sont les défis réglementaires les plus importants pour l\'innovation dans votre secteur?',
-                author: 'Thomas L.',
-                score: 29,
-                status: 'approved',
-                createdAt: new Date(Date.now() - 300000).toISOString(),
-                voted: false,
-                timeAgo: 'il y a 5 min'
-              },
-              {
-                id: '3',
-                text: 'Comment l\'IA transforme-t-elle concrètement les processus d\'innovation dans vos entreprises?',
-                author: 'Pierre F.',
-                score: 21,
-                status: 'approved',
-                createdAt: new Date(Date.now() - 480000).toISOString(),
-                voted: false,
-                timeAgo: 'il y a 8 min'
-              }
-            ],
-            keyPoints: [
-              {
-                title: 'Innovation ouverte et collaboration',
-                description: 'Modèles d\'accélération et programmes partenaires'
-              },
-              {
-                title: 'Intelligence artificielle',
-                description: 'Applications dans la médecine personnalisée'
-              },
-              {
-                title: 'Blockchain',
-                description: 'Traçabilité dans l\'industrie pharmaceutique'
-              },
-              {
-                title: 'Défis réglementaires',
-                description: 'RGPD et normes sectorielles'
-              }
-            ],
-            viewerCount: 125
-          }
-          setPanel(mockPanel)
-          setLoading(false)
-        }, 1000)
+        // Vérifier si les données sont déjà disponibles via le loader
+        if (loaderData?.panelData?.panel) {
+          const { panel: panelData, panelists, questions, keyPoints } = loaderData.panelData;
+
+          // Formater les questions avec le statut de vote
+          const formattedQuestions = questions.map((q: any) => ({
+            ...q,
+            voted: false // Par défaut, l'utilisateur n'a pas encore voté
+          }));
+
+          // Construire l'objet panel complet
+          const completePanel: Panel = {
+            ...panelData,
+            panelists: panelists || [],
+            questions: formattedQuestions,
+            keyPoints: keyPoints || []
+          };
+
+          setPanel(completePanel);
+          setLoading(false);
+          return;
+        }
+
+        // Si les données ne sont pas disponibles via le loader, les récupérer via l'API
+        if (!panelId) {
+          setLoading(false);
+          return;
+        }
+
+        const { panel: panelData, panelists, questions, keyPoints } = await getPublicPanelDetails(panelId);
+
+        if (!panelData) {
+          toast({
+            title: 'Panel non trouvé',
+            description: 'Le panel demandé n\'existe pas ou a été supprimé.'
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Formater les questions avec le statut de vote
+        const formattedQuestions = questions.map((q: any) => ({
+          ...q,
+          voted: false // Par défaut, l'utilisateur n'a pas encore voté
+        }));
+
+        // Construire l'objet panel complet
+        const completePanel: Panel = {
+          ...panelData,
+          panelists: panelists || [],
+          questions: formattedQuestions,
+          keyPoints: keyPoints || []
+        };
+
+        setPanel(completePanel);
+        setLoading(false);
       } catch (error) {
-        console.error('Erreur lors du chargement des données du panel:', error)
+        console.error('Erreur lors du chargement des données du panel:', error);
         toast({
           title: 'Erreur',
           description: 'Impossible de charger les données du panel'
-        })
-        setLoading(false)
+        });
+        setLoading(false);
       }
-    }
+    };
 
-    fetchPanelData()
-  }, [panelId, toast])
+    initializePanel();
+  }, [panelId, loaderData, toast]);
 
   // Soumettre une nouvelle question (envoi à l'API et mise à jour de l'interface)
-  const handleSubmitQuestion = () => {
+  const handleSubmitQuestion = async () => {
     if (!newQuestion.trim()) {
       toast({
         title: 'Erreur',
@@ -206,11 +159,22 @@ export default function AudienceView() {
       return
     }
 
+    if (!panelId || !panel) {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de soumettre la question, panel non trouvé'
+      })
+      return
+    }
+
     setSubmitting(true)
 
-    // TODO: Remplacer par un appel API réel
-    setTimeout(() => {
-      if (panel) {
+    try {
+      // Envoyer la question à l'API
+      const success = await addPublicQuestion(panelId, newQuestion, 'Anonyme')
+
+      if (success) {
+        // Créer un objet question temporaire pour l'affichage immédiat
         const newQuestionObj: PublicQuestion = {
           id: `new-${Date.now()}`,
           text: newQuestion,
@@ -218,44 +182,119 @@ export default function AudienceView() {
           score: 0,
           status: 'pending',
           createdAt: new Date().toISOString(),
-          voted: false
+          voted: false,
+          timeAgo: 'à l\'instant'
         }
 
+        // Mettre à jour l'interface
         setPanel({
           ...panel,
           questions: [newQuestionObj, ...panel.questions]
         })
 
         setNewQuestion('')
-        setSubmitting(false)
 
         toast({
           title: 'Question soumise',
           description: 'Votre question a été soumise avec succès et sera examinée par le modérateur',
         })
+      } else {
+        toast({
+          title: 'Erreur',
+          description: 'Impossible de soumettre la question, veuillez réessayer'
+        })
       }
-    }, 1000)
+    } catch (error) {
+      console.error('Erreur lors de la soumission de la question:', error)
+      toast({
+        title: 'Erreur',
+        description: 'Une erreur est survenue lors de la soumission de la question'
+      })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   // Voter pour une question (système de vote avec possibilité d'annuler son vote)
-  const handleVote = (questionId: string) => {
-    if (panel) {
-      const updatedQuestions = panel.questions.map(q => {
+  const handleVote = async (questionId: string) => {
+    if (!panel) return;
+
+    // Trouver la question dans le panel
+    const question = panel.questions.find((q: any) => q.id === questionId);
+    if (!question) return;
+
+    // Si l'ID commence par "new-", c'est une question temporaire qui n'est pas encore en base de données
+    if (questionId.startsWith('new-')) {
+      toast({
+        title: 'Information',
+        description: 'Vous ne pouvez pas encore voter pour cette question'
+      });
+      return;
+    }
+
+    try {
+      // Déterminer si on ajoute ou retire un vote
+      const isAddingVote = !question.voted;
+
+      // Mettre à jour l'interface immédiatement pour une meilleure expérience utilisateur
+      const updatedQuestions = panel.questions.map((q: any) => {
         if (q.id === questionId) {
-          // Si déjà voté, annuler le vote
-          if (q.voted) {
-            return { ...q, score: q.score - 1, voted: false }
-          }
-          // Sinon, ajouter un vote
-          return { ...q, score: q.score + 1, voted: true }
+          return {
+            ...q,
+            score: isAddingVote ? q.score + 1 : q.score - 1,
+            voted: isAddingVote
+          };
         }
-        return q
-      })
+        return q;
+      });
 
       setPanel({
         ...panel,
         questions: updatedQuestions
-      })
+      });
+
+      // Envoyer le vote à l'API
+      const success = await voteForQuestion(questionId, isAddingVote);
+
+      if (!success) {
+        // En cas d'échec, revenir à l'état précédent
+        const revertedQuestions = panel.questions.map((q: any) => {
+          if (q.id === questionId) {
+            return question;
+          }
+          return q;
+        });
+
+        setPanel({
+          ...panel,
+          questions: revertedQuestions
+        });
+
+        toast({
+          title: 'Erreur',
+          description: 'Impossible d\'enregistrer votre vote, veuillez réessayer'
+        });
+      }
+    } catch (error) {
+      console.error('Erreur lors du vote pour la question:', error);
+
+      // Revenir à l'état précédent en cas d'erreur
+      const revertedQuestions = panel.questions.map((q: any) => {
+        if (q.id === questionId) {
+          return question;
+        }
+        return q;
+      });
+
+      setPanel({
+        ...panel,
+        questions: revertedQuestions
+      });
+
+      toast({
+        title: 'Erreur',
+        description: 'Une erreur est survenue lors de l\'enregistrement de votre vote'
+      });
     }
   }
 
@@ -430,12 +469,18 @@ export default function AudienceView() {
                 <h4 className="text-xs uppercase text-gray-500 font-medium mb-1">MODÉRATEUR</h4>
                 <div className="flex items-center gap-2">
                   <div className="bg-indigo-100 text-indigo-700 rounded-full h-8 w-8 flex items-center justify-center font-medium">
-                    {panel.moderator.initials || panel.moderator.name.split(' ').map(n => n[0]).join('')}
+                    {panel.moderator ? (panel.moderator.initials || (panel.moderator.name ? panel.moderator.name.split(' ').map(n => n[0]).join('') : 'M')) : 'M'}
                   </div>
-                  <div>
-                    <div className="font-medium text-sm">{panel.moderator.name}</div>
-                    <div className="text-xs text-muted-foreground">{panel.moderator.role}</div>
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{panel.moderator?.name || 'Modérateur'}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {panel.moderator?.role || 'Organisateur'}
+                      {panel.moderator?.company && `, ${panel.moderator.company}`}
+                    </div>
                   </div>
+                  <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200 border-0">
+                    Créateur
+                  </Badge>
                 </div>
               </div>
             </div>

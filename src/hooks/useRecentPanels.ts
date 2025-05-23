@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Panel } from '@/types'
+import { getUserPanels } from '@/services/panelService'
 
 interface UseRecentPanelsResult {
   recentPanels: Panel[]
@@ -7,7 +8,12 @@ interface UseRecentPanelsResult {
   error?: Error
 }
 
-export function useRecentPanels(): UseRecentPanelsResult {
+/**
+ * Hook pour récupérer les panels récents de l'utilisateur
+ * @param limit Nombre maximum de panels à récupérer
+ * @returns Les panels récents, l'état de chargement et les erreurs éventuelles
+ */
+export function useRecentPanels(limit: number = 5): UseRecentPanelsResult {
   const [recentPanels, setRecentPanels] = useState<Panel[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | undefined>(undefined)
@@ -16,29 +22,21 @@ export function useRecentPanels(): UseRecentPanelsResult {
     const fetchRecentPanels = async () => {
       try {
         setIsLoading(true)
-        // TODO: Remplacer par appel API
-        const mockPanels: Panel[] = [
-          {
-            id: '1',
-            title: 'Panel Marketing',
-            description: 'Discussion stratégie marketing',
-            status: 'active',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            ownerId: 'current-user-id'
-          },
-          {
-            id: '2',
-            title: 'Panel Produit',
-            description: 'Feedback nouveau produit',
-            status: 'completed',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            ownerId: 'current-user-id'
-          }
-        ]
-        setRecentPanels(mockPanels)
+
+        // Récupérer tous les panels de l'utilisateur
+        const panels = await getUserPanels()
+
+        // Trier par date de création (du plus récent au plus ancien)
+        const sortedPanels = panels.sort((a, b) => {
+          const dateA = new Date(a.createdAt || '').getTime()
+          const dateB = new Date(b.createdAt || '').getTime()
+          return dateB - dateA
+        })
+
+        // Limiter le nombre de panels
+        setRecentPanels(sortedPanels.slice(0, limit))
       } catch (err) {
+        console.error('Erreur lors de la récupération des panels récents:', err)
         setError(err as Error)
       } finally {
         setIsLoading(false)
@@ -46,7 +44,7 @@ export function useRecentPanels(): UseRecentPanelsResult {
     }
 
     fetchRecentPanels()
-  }, [])
+  }, [limit])
 
   return { recentPanels, isLoading, error }
 }

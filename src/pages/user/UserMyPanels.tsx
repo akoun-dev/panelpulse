@@ -10,155 +10,34 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { getUserPanels } from '@/services/panelService'
+import { useToast } from '@/components/ui/use-toast'
 
 export default function UserMyPanels() {
   const navigate = useNavigate()
+  const { toast } = useToast()
   const [panels, setPanels] = useState<Panel[]>([])
   const [selectedPanel, setSelectedPanel] = useState<Panel | null>(null)
   const [activeTab, setActiveTab] = useState('panels')
   const [searchTerm, setSearchTerm] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  // Simuler les panels où l'utilisateur est modérateur et ceux où il est panéliste
-  const fetchPanels = () => {
+  // Récupérer les panels de l'utilisateur depuis Supabase
+  const fetchPanels = async () => {
     setIsLoading(true)
-    // Simuler un délai de chargement
-    setTimeout(() => {
-      // TODO: Remplacer par appel API
-      setPanels([
-        {
-          id: '1',
-          title: 'Panel Marketing Digital',
-          description: 'Discussion sur les stratégies marketing dans l\'ère numérique',
-          status: 'active',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          ownerId: 'current-user-id', // L'utilisateur est le modérateur
-          userRole: 'moderator',
-          panelists: [
-            {
-              id: '1',
-              name: 'Sophie Martin',
-              email: 'sophie@example.com',
-              role: 'Directrice Innovation',
-              company: 'TechCorp',
-              timeAllocated: 420
-            },
-            {
-              id: '2',
-              name: 'Jean Dupont',
-              email: 'jean@example.com',
-              role: 'CEO',
-              company: 'StartupNext',
-              timeAllocated: 420
-            }
-          ],
-          preparedQA: [
-            {
-              id: '1',
-              question: 'Comment voyez-vous l\'évolution du marketing digital dans les 5 prochaines années?',
-              answer: 'Nous anticipons une intégration plus profonde de l\'IA dans les stratégies marketing, avec une personnalisation accrue et une analyse prédictive plus précise.',
-              panelistId: '1',
-              panelistName: 'Sophie Martin',
-              isVisible: false
-            },
-            {
-              id: '2',
-              question: 'Quels sont les défis éthiques majeurs liés à la collecte de données marketing?',
-              answer: 'Les principaux défis concernent la transparence dans la collecte et l\'utilisation des données, le respect du consentement des utilisateurs, et la protection contre les biais algorithmiques.',
-              panelistId: '1',
-              panelistName: 'Sophie Martin',
-              isVisible: true
-            },
-            {
-              id: '3',
-              question: 'Comment mesurer efficacement le ROI des campagnes sur les réseaux sociaux?',
-              answer: 'Au-delà des métriques traditionnelles comme l\'engagement, il faut établir des KPIs alignés avec les objectifs commerciaux et analyser le parcours client complet.',
-              panelistId: '2',
-              panelistName: 'Jean Dupont',
-              isVisible: false
-            }
-          ]
-        },
-        {
-          id: '2',
-          title: 'Panel Produit Innovation',
-          description: 'Feedback sur le nouveau produit et perspectives d\'évolution',
-          status: 'completed',
-          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 jours avant
-          updatedAt: new Date().toISOString(),
-          ownerId: 'current-user-id',
-          userRole: 'moderator',
-          panelists: [
-            {
-              id: '3',
-              name: 'Marie Leroy',
-              email: 'marie@example.com',
-              role: 'Product Manager',
-              company: 'InnovTech',
-              timeAllocated: 300
-            }
-          ],
-          preparedQA: [
-            {
-              id: '4',
-              question: 'Quelles fonctionnalités sont les plus demandées par les utilisateurs?',
-              answer: 'D\'après nos études, l\'intégration avec d\'autres outils, la personnalisation de l\'interface et les fonctionnalités collaboratives sont les plus demandées.',
-              panelistId: '3',
-              panelistName: 'Marie Leroy',
-              isVisible: true
-            }
-          ]
-        },
-        {
-          id: '3',
-          title: 'Panel Intelligence Artificielle',
-          description: 'Impact de l\'IA sur les métiers du numérique',
-          status: 'active',
-          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 jours avant
-          updatedAt: new Date().toISOString(),
-          ownerId: 'other-user-id', // Un autre utilisateur est le modérateur
-          userRole: 'panelist', // L'utilisateur actuel est panéliste
-          panelists: [
-            {
-              id: 'current-user-id', // L'utilisateur actuel est panéliste
-              name: 'Vous',
-              email: 'vous@example.com',
-              role: 'Expert en IA',
-              company: 'VotreEntreprise',
-              timeAllocated: 600
-            },
-            {
-              id: '4',
-              name: 'Pierre Dubois',
-              email: 'pierre@example.com',
-              role: 'Chercheur',
-              company: 'Institut de Recherche',
-              timeAllocated: 600
-            }
-          ],
-          preparedQA: [
-            {
-              id: '5',
-              question: 'Comment l\'IA va-t-elle transformer les métiers du développement?',
-              answer: 'L\'IA va automatiser certaines tâches répétitives mais créera de nouvelles opportunités dans l\'analyse de données, l\'optimisation des algorithmes et la conception de systèmes intelligents.',
-              panelistId: 'current-user-id',
-              panelistName: 'Vous',
-              isVisible: true
-            },
-            {
-              id: '6',
-              question: 'Quelles compétences seront essentielles pour les développeurs dans un monde dominé par l\'IA?',
-              answer: 'La compréhension des principes de l\'IA, la capacité à travailler avec des modèles de machine learning, et les compétences en éthique et gouvernance des données seront cruciales.',
-              panelistId: 'current-user-id',
-              panelistName: 'Vous',
-              isVisible: false
-            }
-          ]
-        }
-      ])
+    try {
+      const userPanels = await getUserPanels()
+      setPanels(userPanels)
+    } catch (error) {
+      console.error('Erreur lors de la récupération des panels:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de récupérer vos panels. Veuillez réessayer.",
+        variant: "destructive" as any
+      })
+    } finally {
       setIsLoading(false)
-    }, 500)
+    }
   }
 
   useEffect(() => {
@@ -267,11 +146,20 @@ export default function UserMyPanels() {
                 }
                 return col
               })}
-              data={panels.filter(panel =>
-                searchTerm === '' ||
-                panel.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                panel.description.toLowerCase().includes(searchTerm.toLowerCase())
-              )}
+              data={panels.filter(panel => {
+                if (!searchTerm) return true;
+
+                const searchLower = searchTerm.toLowerCase();
+                return (
+                  (panel.title?.toLowerCase().includes(searchLower) || false) ||
+                  (panel.description?.toLowerCase().includes(searchLower) || false) ||
+                  (panel.panelists?.some(p =>
+                    (p.name?.toLowerCase().includes(searchLower) || false) ||
+                    (p.role?.toLowerCase().includes(searchLower) || false) ||
+                    (p.company?.toLowerCase().includes(searchLower) || false)
+                  ) || false)
+                );
+              })}
             />
           </div>
         </TabsContent>

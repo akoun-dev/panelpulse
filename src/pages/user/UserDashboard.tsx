@@ -1,18 +1,12 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-// Étendre les types Panel et Invitation pour inclure les propriétés manquantes
-import { Panel as BasePanel, Invitation as BaseInvitation } from '@/types'
+import { Panel } from '@/types'
+import { InvitationWithDetails } from '@/services/invitationService'
+import { UserStats, PanelDistribution } from '@/services/statsService'
+import { Activity as ActivityType } from '@/services/activityService'
+import { UpcomingPanel } from '@/services/upcomingPanelsService'
+import { getCurrentUserProfile, UserProfile } from '@/services/userService'
 
-interface Panel extends BasePanel {
-  date?: string;
-  participants?: number;
-}
 
-interface Invitation extends BaseInvitation {
-  panelTitle?: string;
-  panelDate?: string;
-  role?: string;
-  moderatorName?: string;
-}
 import { useRecentPanels } from '@/hooks/useRecentPanels'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -36,79 +30,74 @@ import {
   Mail
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { getPendingInvitations } from '@/services/invitationService'
+import { getUserStats, getPanelDistribution } from '@/services/statsService'
+import { getUpcomingPanels } from '@/services/upcomingPanelsService'
+import { getRecentActivities } from '@/services/activityService'
 
 export default function UserDashboard() {
   const { recentPanels, isLoading } = useRecentPanels()
   const navigate = useNavigate()
-  const [pendingInvitations, setPendingInvitations] = useState<Invitation[]>([])
-  const [upcomingPanels, setUpcomingPanels] = useState<Panel[]>([])
-  const [userStats, setUserStats] = useState({
-    panelsCreated: 12,
-    panelsParticipated: 8,
-    questionsAnswered: 45,
-    totalSpeakingTime: 320, // minutes
-    activeInvitations: 3,
-    completionRate: 85
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [pendingInvitations, setPendingInvitations] = useState<InvitationWithDetails[]>([])
+  const [upcomingPanels, setUpcomingPanels] = useState<UpcomingPanel[]>([])
+  const [userStats, setUserStats] = useState<UserStats>({
+    panelsCreated: 0,
+    panelsParticipated: 0,
+    questionsAnswered: 0,
+    totalSpeakingTime: 0,
+    activeInvitations: 0,
+    completionRate: 0
   })
+  const [panelDistribution, setPanelDistribution] = useState<PanelDistribution>({
+    active: 0,
+    completed: 0,
+    draft: 0
+  })
+  const [recentActivities, setRecentActivities] = useState<ActivityType[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Simuler le chargement des données
+  // Charger les données réelles
   useEffect(() => {
-    setTimeout(() => {
-      // Invitations en attente
-      setPendingInvitations([
-        {
-          id: '1',
-          panelId: '101',
-          email: 'vous@example.com',
-          status: 'pending',
-          createdAt: new Date().toISOString(),
-          panelTitle: 'Panel Marketing Digital',
-          panelDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Dans 7 jours
-          role: 'Expert en Marketing',
-          moderatorName: 'Jean Dupont'
-        },
-        {
-          id: '2',
-          panelId: '102',
-          email: 'vous@example.com',
-          status: 'pending',
-          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // Il y a 2 jours
-          panelTitle: 'Panel Produit Innovation',
-          panelDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // Dans 3 jours
-          role: 'Product Manager',
-          moderatorName: 'Marie Leroy'
-        }
-      ])
+    const loadDashboardData = async () => {
+      try {
+        setLoading(true)
 
-      // Panels à venir
-      setUpcomingPanels([
-        {
-          id: '201',
-          title: 'Panel Intelligence Artificielle',
-          description: 'Discussion sur les avancées en IA et leurs impacts',
-          status: 'active',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          ownerId: 'current-user-id',
-          date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // Dans 2 jours
-          participants: 5
-        },
-        {
-          id: '202',
-          title: 'Panel Cybersécurité',
-          description: 'Tendances et meilleures pratiques en sécurité',
-          status: 'active',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          ownerId: 'current-user-id',
-          date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), // Dans 5 jours
-          participants: 3
-        }
-      ])
+        // Charger le profil utilisateur
+        const profile = await getCurrentUserProfile()
+        setUserProfile(profile)
 
-      setLoading(false)
-    }, 800)
+        // Charger les invitations en attente
+        const invitations = await getPendingInvitations()
+        setPendingInvitations(invitations)
+
+        // Charger les panels à venir
+        const upcoming = await getUpcomingPanels()
+        setUpcomingPanels(upcoming)
+
+        // Charger les statistiques utilisateur
+        const stats = await getUserStats()
+        if (stats) {
+          setUserStats(stats)
+        }
+
+        // Charger la répartition des panels
+        const distribution = await getPanelDistribution()
+        if (distribution) {
+          setPanelDistribution(distribution)
+        }
+
+        // Charger les activités récentes
+        const activities = await getRecentActivities(3)
+        setRecentActivities(activities)
+      } catch (error) {
+        console.error('Erreur lors du chargement des données du dashboard:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadDashboardData()
   }, [])
 
   // Formater la date
@@ -123,12 +112,41 @@ export default function UserDashboard() {
     })
   }
 
+  // Formater le temps relatif (il y a X heures/jours)
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffSec = Math.round(diffMs / 1000)
+    const diffMin = Math.round(diffSec / 60)
+    const diffHour = Math.round(diffMin / 60)
+    const diffDay = Math.round(diffHour / 24)
+
+    if (diffSec < 60) {
+      return "À l'instant"
+    } else if (diffMin < 60) {
+      return `Il y a ${diffMin} minute${diffMin > 1 ? 's' : ''}`
+    } else if (diffHour < 24) {
+      return `Il y a ${diffHour} heure${diffHour > 1 ? 's' : ''}`
+    } else if (diffDay < 30) {
+      return `Il y a ${diffDay} jour${diffDay > 1 ? 's' : ''}`
+    } else {
+      return date.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      })
+    }
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* En-tête avec bienvenue et bouton de création */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Bienvenue, Sophie</h1>
+          <h1 className="text-2xl font-bold">
+            Bienvenue{userProfile?.name ? `, ${userProfile.name}` : ''}
+          </h1>
           <p className="text-muted-foreground">Voici un aperçu de vos activités et panels</p>
         </div>
         <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => navigate('/user/create-panel')}>
@@ -138,44 +156,50 @@ export default function UserDashboard() {
       </div>
 
       {/* Statistiques principales */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <DashboardStatCard
-          icon={<MessageSquare className="h-5 w-5" />}
-          title="Panels créés"
-          value={userStats.panelsCreated.toString()}
-          description="Total de vos panels"
-          trend={"+2 ce mois-ci"}
-          trendUp={true}
-          color="blue"
-        />
-        <DashboardStatCard
-          icon={<Users className="h-5 w-5" />}
-          title="Panels participés"
-          value={userStats.panelsParticipated.toString()}
-          description="En tant que panéliste"
-          trend={"+1 cette semaine"}
-          trendUp={true}
-          color="purple"
-        />
-        <DashboardStatCard
-          icon={<Activity className="h-5 w-5" />}
-          title="Taux de complétion"
-          value={`${userStats.completionRate}%`}
-          description="Panels terminés"
-          trend={"+5% vs mois dernier"}
-          trendUp={true}
-          color="green"
-        />
-        <DashboardStatCard
-          icon={<Clock className="h-5 w-5" />}
-          title="Temps de parole"
-          value={`${Math.floor(userStats.totalSpeakingTime / 60)}h ${userStats.totalSpeakingTime % 60}m`}
-          description="Temps total"
-          trend={"+45min cette semaine"}
-          trendUp={true}
-          color="amber"
-        />
-      </div>
+      {loading ? (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <DashboardStatCard
+            icon={<MessageSquare className="h-5 w-5" />}
+            title="Panels créés"
+            value={userStats.panelsCreated.toString()}
+            description="Total de vos panels"
+            trend={userStats.panelsCreated > 0 ? "+2 ce mois-ci" : "Aucun panel"}
+            trendUp={userStats.panelsCreated > 0}
+            color="blue"
+          />
+          <DashboardStatCard
+            icon={<Users className="h-5 w-5" />}
+            title="Panels participés"
+            value={userStats.panelsParticipated.toString()}
+            description="En tant que panéliste"
+            trend={userStats.panelsParticipated > 0 ? "+1 cette semaine" : "Aucune participation"}
+            trendUp={userStats.panelsParticipated > 0}
+            color="purple"
+          />
+          <DashboardStatCard
+            icon={<Activity className="h-5 w-5" />}
+            title="Taux de complétion"
+            value={`${userStats.completionRate}%`}
+            description="Panels terminés"
+            trend={userStats.completionRate > 0 ? "+5% vs mois dernier" : "Aucun panel terminé"}
+            trendUp={userStats.completionRate > 0}
+            color="green"
+          />
+          <DashboardStatCard
+            icon={<Clock className="h-5 w-5" />}
+            title="Temps de parole"
+            value={`${Math.floor(userStats.totalSpeakingTime / 60)}h ${userStats.totalSpeakingTime % 60}m`}
+            description="Temps total"
+            trend={userStats.totalSpeakingTime > 0 ? "+45min cette semaine" : "Aucun temps de parole"}
+            trendUp={userStats.totalSpeakingTime > 0}
+            color="amber"
+          />
+        </div>
+      )}
 
       {/* Contenu principal avec onglets */}
       <Tabs defaultValue="overview" className="w-full">
@@ -238,26 +262,53 @@ export default function UserDashboard() {
                 <CardTitle className="text-xl">Activité récente</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <ActivityItem
-                    icon={<Bell className="h-4 w-4 text-blue-500" />}
-                    title="Nouvelle invitation"
-                    description="Vous avez reçu une invitation pour 'Panel Marketing Digital'"
-                    time="Il y a 2 heures"
-                  />
-                  <ActivityItem
-                    icon={<CheckCircle2 className="h-4 w-4 text-green-500" />}
-                    title="Panel terminé"
-                    description="'Panel Produit' a été marqué comme terminé"
-                    time="Hier"
-                  />
-                  <ActivityItem
-                    icon={<MessageSquare className="h-4 w-4 text-purple-500" />}
-                    title="Nouveau panel créé"
-                    description="Vous avez créé 'Panel Intelligence Artificielle'"
-                    time="Il y a 3 jours"
-                  />
-                </div>
+                {loading ? (
+                  <div className="py-8 text-center">
+                    <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+                    <p className="mt-2 text-sm text-muted-foreground">Chargement des activités...</p>
+                  </div>
+                ) : recentActivities.length > 0 ? (
+                  <div className="space-y-4">
+                    {recentActivities.map((activity) => {
+                      // Déterminer l'icône en fonction du type d'activité
+                      let icon;
+                      switch (activity.type) {
+                        case 'invitation':
+                          icon = <Bell className="h-4 w-4 text-blue-500" />;
+                          break;
+                        case 'panel_completed':
+                          icon = <CheckCircle2 className="h-4 w-4 text-green-500" />;
+                          break;
+                        case 'panel_created':
+                          icon = <MessageSquare className="h-4 w-4 text-purple-500" />;
+                          break;
+                        case 'question_answered':
+                          icon = <MessageSquare className="h-4 w-4 text-amber-500" />;
+                          break;
+                        default:
+                          icon = <Bell className="h-4 w-4 text-muted-foreground" />;
+                      }
+
+                      // Formater le temps relatif
+                      const timeAgo = formatTimeAgo(activity.time);
+
+                      return (
+                        <ActivityItem
+                          key={activity.id}
+                          icon={icon}
+                          title={activity.title}
+                          description={activity.description}
+                          time={timeAgo}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Bell className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                    <p>Aucune activité récente</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -272,54 +323,76 @@ export default function UserDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <h3 className="font-medium">Répartition des panels</h3>
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="bg-muted/20 dark:bg-muted/10 p-3 rounded-md">
-                      <div className="text-2xl font-bold text-green-500">5</div>
-                      <div className="text-xs text-muted-foreground">Actifs</div>
+                  {loading ? (
+                    <div className="flex justify-center py-3">
+                      <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
                     </div>
-                    <div className="bg-muted/20 dark:bg-muted/10 p-3 rounded-md">
-                      <div className="text-2xl font-bold text-blue-500">4</div>
-                      <div className="text-xs text-muted-foreground">Terminés</div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="bg-muted/20 dark:bg-muted/10 p-3 rounded-md">
+                        <div className="text-2xl font-bold text-green-500">{panelDistribution.active}</div>
+                        <div className="text-xs text-muted-foreground">Actifs</div>
+                      </div>
+                      <div className="bg-muted/20 dark:bg-muted/10 p-3 rounded-md">
+                        <div className="text-2xl font-bold text-blue-500">{panelDistribution.completed}</div>
+                        <div className="text-xs text-muted-foreground">Terminés</div>
+                      </div>
+                      <div className="bg-muted/20 dark:bg-muted/10 p-3 rounded-md">
+                        <div className="text-2xl font-bold text-amber-500">{panelDistribution.draft}</div>
+                        <div className="text-xs text-muted-foreground">Brouillons</div>
+                      </div>
                     </div>
-                    <div className="bg-muted/20 dark:bg-muted/10 p-3 rounded-md">
-                      <div className="text-2xl font-bold text-amber-500">3</div>
-                      <div className="text-xs text-muted-foreground">Brouillons</div>
-                    </div>
-                  </div>
+                  )}
 
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Questions répondues</span>
                       <span className="font-medium">{userStats.questionsAnswered}</span>
                     </div>
-                    <Progress value={75} className="h-2" />
+                    <Progress
+                      value={userStats.questionsAnswered > 0 ? Math.min(100, userStats.questionsAnswered * 2) : 5}
+                      className="h-2"
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span>Taux de participation</span>
-                      <span className="font-medium">92%</span>
+                      <span>Taux de complétion</span>
+                      <span className="font-medium">{userStats.completionRate}%</span>
                     </div>
-                    <Progress value={92} className="h-2" />
+                    <Progress
+                      value={userStats.completionRate}
+                      className="h-2"
+                    />
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <h3 className="font-medium">Panels à venir</h3>
-                  <div className="space-y-2">
-                    {upcomingPanels.map(panel => (
-                      <div key={panel.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/20">
-                        <div className="bg-primary/10 p-2 rounded-full">
-                          <CalendarIcon className="h-4 w-4 text-primary" />
+                  {loading ? (
+                    <div className="flex justify-center py-3">
+                      <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
+                    </div>
+                  ) : upcomingPanels.length > 0 ? (
+                    <div className="space-y-2">
+                      {upcomingPanels.map(panel => (
+                        <div key={panel.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/20">
+                          <div className="bg-primary/10 p-2 rounded-full">
+                            <CalendarIcon className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{panel.title}</p>
+                            <p className="text-xs text-muted-foreground">{formatDate(panel.date || '')}</p>
+                          </div>
+                          <Badge variant="outline">{panel.participants} participants</Badge>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{panel.title}</p>
-                          <p className="text-xs text-muted-foreground">{formatDate(panel.date || '')}</p>
-                        </div>
-                        <Badge variant="outline">{panel.participants} participants</Badge>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-3 text-muted-foreground">
+                      <p className="text-sm">Aucun panel à venir</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>

@@ -51,11 +51,11 @@ export const getCurrentUserProfile = async (): Promise<UserProfile | null> => {
   try {
     // Récupérer l'utilisateur actuel
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
       return null;
     }
-    
+
     return getUserProfile(user.id);
   } catch (error) {
     console.error('Erreur lors de la récupération du profil utilisateur:', error);
@@ -73,11 +73,11 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
       .select('*')
       .eq('id', userId)
       .single();
-    
+
     if (error) {
       throw error;
     }
-    
+
     return data as UserProfile;
   } catch (error) {
     console.error(`Erreur lors de la récupération du profil utilisateur (ID: ${userId}):`, error);
@@ -89,27 +89,86 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
  * Met à jour le profil de l'utilisateur
  */
 export const updateUserProfile = async (
-  userId: string, 
+  userId: string,
   profileData: UserProfileUpdate
 ): Promise<UserProfile | null> => {
   try {
-    // Appeler la fonction RPC pour mettre à jour le profil
-    const { data, error } = await supabase.rpc('update_user_profile', {
-      user_id: userId,
-      user_name: profileData.name,
-      user_company: profileData.company,
-      user_role: profileData.role,
-      user_location: profileData.location,
-      user_bio: profileData.bio,
-      user_social_links: profileData.social_links,
-      user_expertise: profileData.expertise,
-      user_languages: profileData.languages
-    });
-    
-    if (error) {
-      throw error;
+    // 1. Mettre à jour les informations de base du profil
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        name: profileData.name,
+        company: profileData.company,
+        role: profileData.role,
+        location: profileData.location,
+        bio: profileData.bio,
+        social_links: profileData.social_links || {},
+        updated_at: new Date()
+      })
+      .eq('id', userId);
+
+    if (updateError) {
+      throw updateError;
     }
-    
+
+    // 2. Mettre à jour les expertises
+    if (profileData.expertise) {
+      // Supprimer les expertises existantes
+      const { error: deleteExpertiseError } = await supabase
+        .from('user_expertise')
+        .delete()
+        .eq('user_id', userId);
+
+      if (deleteExpertiseError) {
+        throw deleteExpertiseError;
+      }
+
+      // Ajouter les nouvelles expertises
+      if (profileData.expertise.length > 0) {
+        const expertiseRows = profileData.expertise.map(expertise => ({
+          user_id: userId,
+          expertise
+        }));
+
+        const { error: insertExpertiseError } = await supabase
+          .from('user_expertise')
+          .insert(expertiseRows);
+
+        if (insertExpertiseError) {
+          throw insertExpertiseError;
+        }
+      }
+    }
+
+    // 3. Mettre à jour les langues
+    if (profileData.languages) {
+      // Supprimer les langues existantes
+      const { error: deleteLanguageError } = await supabase
+        .from('user_languages')
+        .delete()
+        .eq('user_id', userId);
+
+      if (deleteLanguageError) {
+        throw deleteLanguageError;
+      }
+
+      // Ajouter les nouvelles langues
+      if (profileData.languages.length > 0) {
+        const languageRows = profileData.languages.map(language => ({
+          user_id: userId,
+          language
+        }));
+
+        const { error: insertLanguageError } = await supabase
+          .from('user_languages')
+          .insert(languageRows);
+
+        if (insertLanguageError) {
+          throw insertLanguageError;
+        }
+      }
+    }
+
     // Récupérer le profil mis à jour
     return getUserProfile(userId);
   } catch (error) {
@@ -130,31 +189,31 @@ export const updateUserAvatar = async (
     const fileExt = avatarFile.name.split('.').pop();
     const fileName = `${userId}-${Date.now()}.${fileExt}`;
     const filePath = `avatars/${fileName}`;
-    
+
     // Uploader le fichier
     const { error: uploadError } = await supabase.storage
       .from('user-avatars')
       .upload(filePath, avatarFile);
-    
+
     if (uploadError) {
       throw uploadError;
     }
-    
+
     // Récupérer l'URL publique
     const { data: { publicUrl } } = supabase.storage
       .from('user-avatars')
       .getPublicUrl(filePath);
-    
+
     // Mettre à jour le profil avec la nouvelle URL d'avatar
     const { error: updateError } = await supabase
       .from('profiles')
       .update({ avatar_url: publicUrl })
       .eq('id', userId);
-    
+
     if (updateError) {
       throw updateError;
     }
-    
+
     return publicUrl;
   } catch (error) {
     console.error(`Erreur lors de la mise à jour de l'avatar (ID: ${userId}):`, error);
@@ -171,11 +230,11 @@ export const getAllUsers = async (): Promise<UserProfile[]> => {
       .from('user_profiles_view')
       .select('*')
       .order('name');
-    
+
     if (error) {
       throw error;
     }
-    
+
     return data as UserProfile[];
   } catch (error) {
     console.error('Erreur lors de la récupération de tous les utilisateurs:', error);
@@ -195,11 +254,11 @@ export const updateUserRole = async (
       .from('profiles')
       .update({ user_role: role })
       .eq('id', userId);
-    
+
     if (error) {
       throw error;
     }
-    
+
     return true;
   } catch (error) {
     console.error(`Erreur lors de la mise à jour du rôle utilisateur (ID: ${userId}):`, error);

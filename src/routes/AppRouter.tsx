@@ -25,6 +25,7 @@ import NotFound from '../pages/NotFound';
 import UserLayout from '@/components/layout/user/UserLayout';
 import AudienceLayout from '../pages/audience/AudienceLayout';
 import AudienceView from '../pages/audience/AudienceView';
+import { getPublicPanelDetails } from '@/services/panelService';
 import RedirectIfAuthenticated from '@/components/auth/RedirectIfAuthenticated';
 
 export const router = createBrowserRouter([
@@ -124,6 +125,13 @@ export const router = createBrowserRouter([
         element: <UserCreatePanel />
       },
       {
+        path: 'panels/:panelId/edit',
+        element: <UserCreatePanel />,
+        loader: async ({ params }) => {
+          return { panelId: params.panelId }
+        }
+      },
+      {
         path: 'panelist/:panelId',
         element: <UserPanelistView />
       },
@@ -138,7 +146,7 @@ export const router = createBrowserRouter([
     ]
   },
   {
-    path: '/public/panel/:panelId',
+    path: '/panel/:panelId',
     element: <AudienceLayout />,
     errorElement: <NotFound />,
     children: [
@@ -146,10 +154,16 @@ export const router = createBrowserRouter([
         path: '',
         element: <AudienceView />,
         loader: async ({ params }) => {
-          // TODO: Implémenter le chargement des données du panel depuis l'API
+          // Récupérer les données du panel depuis l'API
           // Cette route est utilisée pour l'interface publique accessible via QR code
           // Elle permet aux spectateurs de voir les informations du panel, poser des questions et voter
-          return { panelId: params.panelId }
+          try {
+            const panelData = await getPublicPanelDetails(params.panelId || '');
+            return { panelData, panelId: params.panelId };
+          } catch (error) {
+            console.error('Erreur lors du chargement des données du panel:', error);
+            return { panelId: params.panelId };
+          }
         }
       }
     ]

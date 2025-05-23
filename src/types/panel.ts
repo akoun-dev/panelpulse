@@ -2,7 +2,7 @@ export interface PanelSession {
   id: string
   title: string
   description: string
-  status: 'draft' | 'active' | 'completed' | 'archived'
+  status: 'draft' | 'active' | 'completed' | 'archived' | 'published'
   duration: number // in minutes
   segments: PanelSegment[]
   createdAt: string
@@ -30,7 +30,7 @@ export interface PublicQuestion {
   text: string
   author: string
   score: number
-  status: 'pending' | 'approved' | 'rejected'
+  status: 'pending' | 'approved' | 'rejected' | 'answered'
   createdAt: string
 }
 
