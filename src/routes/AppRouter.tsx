@@ -23,6 +23,8 @@ import UserProfile from '../pages/user/UserProfile';
 import UserSettings from '../pages/user/UserSettings';
 import NotFound from '../pages/NotFound';
 import UserLayout from '@/components/layout/user/UserLayout';
+import AudienceLayout from '../pages/audience/AudienceLayout';
+import AudienceView from '../pages/audience/AudienceView';
 
 export const router = createBrowserRouter([
   {
@@ -131,6 +133,23 @@ export const router = createBrowserRouter([
       {
         path: 'settings',
         element: <UserSettings />
+      }
+    ]
+  },
+  {
+    path: '/public/panel/:panelId',
+    element: <AudienceLayout />,
+    errorElement: <NotFound />,
+    children: [
+      {
+        path: '',
+        element: <AudienceView />,
+        loader: async ({ params }) => {
+          // TODO: Implémenter le chargement des données du panel depuis l'API
+          // Cette route est utilisée pour l'interface publique accessible via QR code
+          // Elle permet aux spectateurs de voir les informations du panel, poser des questions et voter
+          return { panelId: params.panelId }
+        }
       }
     ]
   }
