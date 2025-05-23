@@ -19,29 +19,12 @@ export function Navbar() {
           </div>
 
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
-            <div className="mr-4">
-              <ThemeToggle />
-            </div>
-
-            {user ? (
-              <div className="flex items-center">
-                <span className="text-gray-500 dark:text-gray-300 px-3 py-2 rounded-md text-sm font-medium">
-                  {user.name}
-                </span>
-                <Link to="/logout" className="ml-4 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium">
-                  Déconnexion
-                </Link>
-              </div>
-            ) : (
-              <>
-                <Link to="/login" className="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-                  Connexion
-                </Link>
-                <Link to="/register" className="ml-4 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium">
-                  S'inscrire
-                </Link>
-              </>
-            )}
+            <Link to="/login" className="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium">
+              Connexion
+            </Link>
+            <Link to="/register" className="ml-4 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+              S'inscrire
+            </Link>
           </div>
 
           <div className="-mr-2 flex items-center sm:hidden">

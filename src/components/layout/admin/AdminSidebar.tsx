@@ -1,10 +1,13 @@
 import { Link, useLocation } from 'react-router-dom'
-import { 
+import {
   LayoutDashboard,
   Users,
   MessageSquare,
   BarChart,
-  Settings
+  Settings,
+  Shield,
+  Flag,
+  FileText
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -16,7 +19,7 @@ const navItems = [
   },
   {
     name: 'Utilisateurs',
-    href: '/admin/users', 
+    href: '/admin/users',
     icon: Users
   },
   {
@@ -25,9 +28,19 @@ const navItems = [
     icon: MessageSquare
   },
   {
+    name: 'Modération',
+    href: '/admin/moderation',
+    icon: Shield
+  },
+  {
     name: 'Statistiques',
     href: '/admin/stats',
     icon: BarChart
+  },
+  {
+    name: 'Logs système',
+    href: '/admin/logs',
+    icon: FileText
   },
   {
     name: 'Paramètres',
@@ -44,7 +57,7 @@ export default function AdminSidebar() {
       <div className="p-4 border-b">
         <h2 className="text-xl font-semibold">Admin Panel</h2>
       </div>
-      
+
       <nav className="flex-1 p-2 space-y-1">
         {navItems.map((item) => (
           <Link
@@ -52,7 +65,7 @@ export default function AdminSidebar() {
             to={item.href}
             className={cn(
               'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium',
-              pathname === item.href 
+              pathname === item.href
                 ? 'bg-accent text-accent-foreground'
                 : 'hover:bg-accent/50'
             )}

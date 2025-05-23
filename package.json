@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "clean": "rm -rf node_modules/.vite && npm cache clean --force",
+    "dev:clean": "npm run clean && npm run dev -- --force"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.7.2",

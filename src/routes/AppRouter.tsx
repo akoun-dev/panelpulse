@@ -10,6 +10,8 @@ import AdminManageUsers from '../pages/admin/AdminManageUsers';
 import AdminManagePanels from '../pages/admin/AdminManagePanels';
 import AdminStats from '../pages/admin/AdminStats';
 import AdminSettings from '../pages/admin/AdminSettings';
+import AdminModeration from '../pages/admin/AdminModeration';
+import AdminSystemLogs from '../pages/admin/AdminSystemLogs';
 import UserDashboard from '../pages/user/UserDashboard';
 import UserMyPanels from '../pages/user/UserMyPanels';
 import UserInvitations from '../pages/user/UserInvitations';
@@ -52,6 +54,10 @@ export const router = createBrowserRouter([
     errorElement: <NotFound />,
     children: [
       {
+        path: '',
+        element: <AdminDashboard />
+      },
+      {
         path: 'dashboard',
         element: <AdminDashboard />
       },
@@ -70,6 +76,14 @@ export const router = createBrowserRouter([
       {
         path: 'settings',
         element: <AdminSettings />
+      },
+      {
+        path: 'moderation',
+        element: <AdminModeration />
+      },
+      {
+        path: 'logs',
+        element: <AdminSystemLogs />
       }
     ]
   },

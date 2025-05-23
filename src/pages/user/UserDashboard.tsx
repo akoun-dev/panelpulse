@@ -1,27 +1,37 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Panel, Invitation } from '@/types'
+// Étendre les types Panel et Invitation pour inclure les propriétés manquantes
+import { Panel as BasePanel, Invitation as BaseInvitation } from '@/types'
+
+interface Panel extends BasePanel {
+  date?: string;
+  participants?: number;
+}
+
+interface Invitation extends BaseInvitation {
+  panelTitle?: string;
+  panelDate?: string;
+  role?: string;
+  moderatorName?: string;
+}
 import { useRecentPanels } from '@/hooks/useRecentPanels'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Progress } from '@/components/ui/progress'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import {
   Calendar,
   Clock,
   Users,
   MessageSquare,
-  BarChart3,
   Activity,
   Bell,
   CheckCircle2,
-  AlertCircle,
   Plus,
   ChevronRight,
   Calendar as CalendarIcon,
-  Timer,
   User,
   Mail
 } from 'lucide-react'
@@ -102,7 +112,8 @@ export default function UserDashboard() {
   }, [])
 
   // Formater la date
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'Date non définie'
     const date = new Date(dateString)
     return date.toLocaleDateString('fr-FR', {
       day: '2-digit',
@@ -171,6 +182,7 @@ export default function UserDashboard() {
         <TabsList className="mb-4">
           <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
           <TabsTrigger value="upcoming">À venir</TabsTrigger>
+          <TabsTrigger value="engagement">Engagement</TabsTrigger>
           <TabsTrigger value="invitations">Invitations</TabsTrigger>
         </TabsList>
 
@@ -372,6 +384,127 @@ export default function UserDashboard() {
           </Card>
         </TabsContent>
 
+        {/* Onglet Engagement */}
+        <TabsContent value="engagement" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Statistiques d'engagement</CardTitle>
+              <CardDescription>Analyse de votre participation et engagement</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Graphique de temps de parole */}
+                <div className="space-y-4">
+                  <h3 className="font-medium">Temps de parole par panel</h3>
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Panel Intelligence Artificielle</span>
+                        <span className="font-medium">45 min</span>
+                      </div>
+                      <Progress value={75} className="h-2" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Panel Marketing Digital</span>
+                        <span className="font-medium">32 min</span>
+                      </div>
+                      <Progress value={53} className="h-2" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Panel Cybersécurité</span>
+                        <span className="font-medium">28 min</span>
+                      </div>
+                      <Progress value={47} className="h-2" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Panel Développement Durable</span>
+                        <span className="font-medium">18 min</span>
+                      </div>
+                      <Progress value={30} className="h-2" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Statistiques de participation */}
+                <div className="space-y-4">
+                  <h3 className="font-medium">Statistiques de participation</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-muted/20 dark:bg-muted/10 p-4 rounded-md">
+                      <div className="text-3xl font-bold text-primary">{userStats.questionsAnswered}</div>
+                      <div className="text-sm text-muted-foreground">Questions répondues</div>
+                    </div>
+                    <div className="bg-muted/20 dark:bg-muted/10 p-4 rounded-md">
+                      <div className="text-3xl font-bold text-green-500">92%</div>
+                      <div className="text-sm text-muted-foreground">Taux de participation</div>
+                    </div>
+                    <div className="bg-muted/20 dark:bg-muted/10 p-4 rounded-md">
+                      <div className="text-3xl font-bold text-amber-500">4.8</div>
+                      <div className="text-sm text-muted-foreground">Note moyenne</div>
+                    </div>
+                    <div className="bg-muted/20 dark:bg-muted/10 p-4 rounded-md">
+                      <div className="text-3xl font-bold text-blue-500">78%</div>
+                      <div className="text-sm text-muted-foreground">Taux d'engagement</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator className="my-6" />
+
+              {/* Historique d'engagement */}
+              <div className="space-y-4">
+                <h3 className="font-medium">Historique d'engagement</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 p-3 rounded-md hover:bg-muted/20">
+                    <div className="bg-green-100 dark:bg-green-900/20 p-2 rounded-full">
+                      <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between">
+                        <p className="font-medium">Panel Intelligence Artificielle</p>
+                        <p className="text-sm text-muted-foreground">Il y a 3 jours</p>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Vous avez répondu à 12 questions et parlé pendant 45 minutes</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 p-3 rounded-md hover:bg-muted/20">
+                    <div className="bg-blue-100 dark:bg-blue-900/20 p-2 rounded-full">
+                      <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between">
+                        <p className="font-medium">Panel Marketing Digital</p>
+                        <p className="text-sm text-muted-foreground">Il y a 1 semaine</p>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Vous avez répondu à 8 questions et parlé pendant 32 minutes</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 p-3 rounded-md hover:bg-muted/20">
+                    <div className="bg-purple-100 dark:bg-purple-900/20 p-2 rounded-full">
+                      <Users className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between">
+                        <p className="font-medium">Panel Cybersécurité</p>
+                        <p className="text-sm text-muted-foreground">Il y a 2 semaines</p>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Vous avez répondu à 7 questions et parlé pendant 28 minutes</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button variant="outline" size="sm" className="ml-auto">
+                Voir toutes les statistiques
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+
         {/* Onglet Invitations */}
         <TabsContent value="invitations" className="space-y-4">
           <Card>
@@ -390,7 +523,11 @@ export default function UserDashboard() {
                   {pendingInvitations.map(invitation => (
                     <div key={invitation.id} className="flex flex-col md:flex-row md:items-center gap-4 p-4 border rounded-lg">
                       <Avatar className="h-10 w-10">
-                        <AvatarFallback>{invitation.moderatorName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                        <AvatarFallback>
+                          {invitation.moderatorName
+                            ? invitation.moderatorName.split(' ').map(n => n[0]).join('')
+                            : 'M'}
+                        </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
                         <h3 className="font-medium">{invitation.panelTitle}</h3>

@@ -8,8 +8,8 @@ import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import {
   BarChart as BarChartIcon,
-  LineChart as LineChartIcon,
-  PieChart as PieChartIcon,
+  LineChart,
+  PieChart,
   Users,
   MessageSquare,
   Calendar,
@@ -42,7 +42,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  LineChart,
+  LineChart as RechartsLineChart,
   Line,
   PieChart as RechartsPieChart,
   Pie,
@@ -50,7 +50,6 @@ import {
   AreaChart,
   Area
 } from 'recharts'
-import { Link } from 'react-router-dom'
 
 // Types pour les données analytiques
 interface AnalyticsData {
@@ -202,7 +201,7 @@ const mockAnalyticsData: AnalyticsData = {
 // Couleurs pour les graphiques
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
-export default function AdminDashboard() {
+export default function AdminAnalytics() {
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
@@ -857,6 +856,68 @@ export default function AdminDashboard() {
               </ResponsiveContainer>
             </CardContent>
           </Card>
+
+          {/* Tendances mensuelles */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Tendances mensuelles</CardTitle>
+              <CardDescription>Évolution du nombre de panels et questions par mois</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={analyticsData.trends.seasonality}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip />
+                  <Legend />
+                  <Line yAxisId="left" type="monotone" dataKey="panels" name="Panels" stroke="#8884d8" activeDot={{ r: 8 }} />
+                  <Line yAxisId="right" type="monotone" dataKey="questions" name="Questions" stroke="#82ca9d" />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Top panels */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Top 5 des panels les plus actifs</CardTitle>
+              <CardDescription>Panels avec le plus grand nombre de questions et votes</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {analyticsData.panelAnalytics.topPanels.map((panel, index) => (
+                  <div key={panel.id} className="flex items-center gap-4">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary">
+                      <span className="text-sm font-medium">{index + 1}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{panel.title}</p>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <HelpCircle className="h-3 w-3" /> {panel.questions} questions
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <ThumbsUp className="h-3 w-3" /> {panel.votes} votes
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Eye className="h-3 w-3" /> {panel.views} vues
+                        </span>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      <Eye className="h-4 w-4 mr-2" />
+                      Détails
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Onglet Utilisateurs */}
@@ -999,6 +1060,64 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Taux de rétention */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Taux de rétention mensuel</CardTitle>
+              <CardDescription>Évolution du taux de rétention des utilisateurs</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={analyticsData.userAnalytics.retention}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis domain={[0, 100]} />
+                  <Tooltip formatter={(value) => [`${value}%`, 'Taux de rétention']} />
+                  <Line type="monotone" dataKey="rate" name="Taux de rétention" stroke="#8884d8" activeDot={{ r: 8 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Top utilisateurs */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Top 5 des utilisateurs les plus actifs</CardTitle>
+              <CardDescription>Utilisateurs avec le plus grand nombre de panels et questions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {analyticsData.userAnalytics.topUsers.map((user, index) => (
+                  <div key={user.id} className="flex items-center gap-4">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary">
+                      <span className="text-sm font-medium">{index + 1}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{user.name}</p>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <MessageSquare className="h-3 w-3" /> {user.panels} panels
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <HelpCircle className="h-3 w-3" /> {user.questions} questions
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <ThumbsUp className="h-3 w-3" /> {user.votes} votes
+                        </span>
+                      </div>
+                    </div>
+                    <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
+                      {user.panels > 10 ? 'Super actif' : user.panels > 5 ? 'Très actif' : 'Actif'}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Onglet Tendances */}
@@ -1062,6 +1181,86 @@ export default function AdminDashboard() {
                   <Tooltip />
                   <Legend />
                 </RechartsPieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Heures de pointe */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Heures de pointe</CardTitle>
+              <CardDescription>Répartition de l'activité selon l'heure de la journée</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={analyticsData.trends.peakTimes}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="time" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="activity" name="Niveau d'activité" fill="#8884d8" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Saisonnalité */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Saisonnalité</CardTitle>
+              <CardDescription>Évolution de l'activité au cours de l'année</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={analyticsData.trends.seasonality}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip />
+                  <Legend />
+                  <Line yAxisId="left" type="monotone" dataKey="panels" name="Panels" stroke="#8884d8" activeDot={{ r: 8 }} />
+                  <Line yAxisId="right" type="monotone" dataKey="questions" name="Questions" stroke="#82ca9d" />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Prévisions */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Prévisions de croissance</CardTitle>
+              <CardDescription>Projections pour les 6 prochains mois</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={[
+                    { month: 'Juil', users: 1842, panels: 248, projected: false },
+                    { month: 'Août', users: 1980, panels: 270, projected: true },
+                    { month: 'Sept', users: 2140, panels: 295, projected: true },
+                    { month: 'Oct', users: 2320, panels: 325, projected: true },
+                    { month: 'Nov', users: 2520, panels: 360, projected: true },
+                    { month: 'Déc', users: 2750, panels: 400, projected: true },
+                    { month: 'Jan', users: 3000, panels: 445, projected: true }
+                  ]}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip />
+                  <Legend />
+                  <Line yAxisId="left" type="monotone" dataKey="users" name="Utilisateurs" stroke="#8884d8" strokeDasharray={(d) => d.projected ? "5 5" : "0"} />
+                  <Line yAxisId="right" type="monotone" dataKey="panels" name="Panels" stroke="#82ca9d" strokeDasharray={(d) => d.projected ? "5 5" : "0"} />
+                </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
