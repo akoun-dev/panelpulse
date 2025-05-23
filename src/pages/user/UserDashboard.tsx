@@ -13,9 +13,9 @@ export default function UserDashboard() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Tableau de bord</h1>
-        <Button asChild>
-          <Link to="/panel/new">Créer un panel</Link>
-        </Button>
+          <Button asChild>
+            <Link to="/user/my-panels/new">Créer un panel</Link>
+          </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -80,7 +80,7 @@ function DashboardStatCard({ icon, title, value, description }: {
 function PanelCard({ panel }: { panel: Panel }) {
   return (
     <Card className="p-3 hover:bg-accent transition-colors">
-      <Link to={`/panel/${panel.id}`} className="flex justify-between items-center">
+      <Link to={`/user/my-panels/${panel.id}`} className="flex justify-between items-center">
         <div>
           <h3 className="font-medium">{panel.title}</h3>
           <p className="text-sm text-muted-foreground">{panel.description}</p>
