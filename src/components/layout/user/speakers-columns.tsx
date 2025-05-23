@@ -20,7 +20,7 @@ export const speakersColumns: ColumnDef<Speaker>[] = [
       return (
         <div className="flex items-center gap-2">
           <Progress value={(timeUsed / maxTime) * 100} className="w-full" />
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-muted-foreground">
             {Math.floor(timeUsed / 60)}m {timeUsed % 60}s
           </span>
         </div>

@@ -10,7 +10,7 @@ interface UseRecentPanelsResult {
 export function useRecentPanels(): UseRecentPanelsResult {
   const [recentPanels, setRecentPanels] = useState<Panel[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<Error>()
+  const [error, setError] = useState<Error | undefined>(undefined)
 
   useEffect(() => {
     const fetchRecentPanels = async () => {

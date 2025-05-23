@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { 
+import {
   LayoutDashboard,
   Users,
   MessageSquare,
@@ -17,7 +17,7 @@ const navItems = [
   },
   {
     name: 'Mes Panels',
-    href: '/user/my-panels', 
+    href: '/user/my-panels',
     icon: MessageSquare
   },
   {
@@ -40,12 +40,12 @@ export default function UserSidebar() {
       <div className="p-4 border-b">
         <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <FontAwesomeIcon size='10x' icon={faComments} className="text-purple-600 text-2xl" />
-              <span className="ml-2 text-xl font-bold text-gray-900">PanelPulse</span>
+              <FontAwesomeIcon size='10x' icon={faComments} className="text-purple-600 dark:text-purple-400 text-2xl" />
+              <span className="ml-2 text-xl font-bold text-gray-900 dark:text-white">PanelPulse</span>
             </div>
           </div>
       </div>
-      
+
       <nav className="flex-1 p-2 space-y-1">
         {navItems.map((item) => (
           <Link
@@ -53,7 +53,7 @@ export default function UserSidebar() {
             to={item.href}
             className={cn(
               'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium',
-              pathname === item.href 
+              pathname === item.href
                 ? 'bg-accent text-accent-foreground'
                 : 'hover:bg-accent/50'
             )}

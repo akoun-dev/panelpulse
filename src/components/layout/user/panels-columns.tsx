@@ -3,22 +3,23 @@ import { Panel } from '@/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
+import { User, Users } from 'lucide-react'
 
 export const panelsColumns: ColumnDef<Panel>[] = [
   {
     accessorKey: 'title',
     header: 'Titre',
     cell: ({ row }) => (
-      <Link to={`/panel/${row.original.id}`} className="font-medium text-primary">
+      <div className="font-medium">
         {row.getValue('title')}
-      </Link>
+      </div>
     )
   },
   {
     accessorKey: 'description',
     header: 'Description',
     cell: ({ row }) => (
-      <div className="max-w-xs truncate">
+      <div className="max-w-xs truncate text-muted-foreground">
         {row.getValue('description')}
       </div>
     )
@@ -26,27 +27,65 @@ export const panelsColumns: ColumnDef<Panel>[] = [
   {
     accessorKey: 'status',
     header: 'Statut',
-    cell: ({ row }) => (
-      <Badge variant={
-        row.getValue('status') === 'active' ? 'default' :
-        row.getValue('status') === 'completed' ? 'secondary' : 'outline'
-      }>
-        {row.getValue('status')}
-      </Badge>
-    )
+    cell: ({ row }) => {
+      const status = row.getValue('status') as string
+      return (
+        <Badge variant={
+          status === 'active' ? 'default' :
+          status === 'completed' ? 'secondary' : 'outline'
+        } className="capitalize">
+          {status === 'active' ? 'actif' :
+           status === 'completed' ? 'complété' :
+           status === 'draft' ? 'brouillon' :
+           status === 'archived' ? 'archivé' : status}
+        </Badge>
+      )
+    }
+  },
+  {
+    accessorKey: 'userRole',
+    header: 'Votre rôle',
+    cell: ({ row }) => {
+      const userRole = row.getValue('userRole') as string
+      return (
+        <div className="flex items-center gap-1">
+          {userRole === 'moderator' ? (
+            <>
+              <Users className="h-4 w-4 text-primary" />
+              <span className="text-primary font-medium">Modérateur</span>
+            </>
+          ) : (
+            <>
+              <User className="h-4 w-4 text-indigo-500" />
+              <span className="text-indigo-500 font-medium">Panéliste</span>
+            </>
+          )}
+        </div>
+      )
+    }
   },
   {
     accessorKey: 'createdAt',
     header: 'Créé le',
-    cell: ({ row }) => new Date(row.getValue('createdAt')).toLocaleDateString()
+    cell: ({ row }) => {
+      const date = new Date(row.getValue('createdAt') as string)
+      return (
+        <div className="text-muted-foreground">
+          {date.toLocaleDateString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+          })}
+        </div>
+      )
+    }
   },
   {
     id: 'actions',
+    header: '',
     cell: ({ row }) => (
-      <Button variant="ghost" size="sm" asChild>
-        <Link to={`/panel/${row.original.id}`}>
-          Voir
-        </Link>
+      <Button variant="outline" size="sm" className="px-3 py-1 h-8">
+        Voir
       </Button>
     )
   }

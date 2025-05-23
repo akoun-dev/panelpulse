@@ -13,6 +13,12 @@ import AdminSettings from '../pages/admin/AdminSettings';
 import UserDashboard from '../pages/user/UserDashboard';
 import UserMyPanels from '../pages/user/UserMyPanels';
 import UserInvitations from '../pages/user/UserInvitations';
+import UserInvitationDetails from '../pages/user/UserInvitationDetails';
+import UserPanelDetails from '../pages/user/UserPanelDetails';
+import UserCreatePanel from '../pages/user/UserCreatePanel';
+import UserPanelistView from '../pages/user/UserPanelistView';
+import UserProfile from '../pages/user/UserProfile';
+import UserSettings from '../pages/user/UserSettings';
 import NotFound from '../pages/NotFound';
 import UserLayout from '@/components/layout/user/UserLayout';
 
@@ -83,8 +89,35 @@ export const router = createBrowserRouter([
       {
         path: 'invitations',
         element: <UserInvitations />
+      },
+      {
+        path: 'invitations/:id',
+        element: <UserInvitationDetails />
+      },
+      {
+        path: 'panels/:panelId',
+        element: <UserPanelDetails />,
+        loader: async ({ params }) => {
+          // TODO: Implémenter le chargement des données du panel
+          return { panelId: params.panelId }
+        }
+      },
+      {
+        path: 'create-panel',
+        element: <UserCreatePanel />
+      },
+      {
+        path: 'panelist/:panelId',
+        element: <UserPanelistView />
+      },
+      {
+        path: 'profile',
+        element: <UserProfile />
+      },
+      {
+        path: 'settings',
+        element: <UserSettings />
       }
-      
     ]
   }
 ]);

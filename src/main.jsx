@@ -4,9 +4,12 @@ import { RouterProvider } from 'react-router-dom'
 import './lib/fontawesome'
 import './index.css'
 import { router } from './routes/AppRouter'
+import { ThemeProvider } from './components/ui/theme-provider'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <ThemeProvider defaultTheme="system" storageKey="panelpulse-theme">
+      <RouterProvider router={router} />
+    </ThemeProvider>
   </StrictMode>,
 )
