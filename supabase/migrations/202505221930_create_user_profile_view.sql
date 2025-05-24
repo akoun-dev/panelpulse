@@ -26,8 +26,7 @@ CREATE OR REPLACE FUNCTION public.update_user_profile(
   user_bio TEXT,
   user_social_links JSONB,
   user_expertise VARCHAR[],
-  user_languages VARCHAR[]
-)
+  user_languages VARCHAR[])
 RETURNS BOOLEAN AS $$
 DECLARE
   expertise_item VARCHAR;

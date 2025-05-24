@@ -44,21 +44,26 @@ type RedirectIfAuthenticatedProps = {
 };
 
 // Composant qui vérifie si l'utilisateur est authentifié
-// Si oui, redirige vers le tableau de bord, sinon affiche les enfants
+// Si oui, redirige vers le tableau de bord ou l'interface admin selon le rôle, sinon affiche les enfants
 export const RedirectIfAuthenticated = ({ children }: RedirectIfAuthenticatedProps) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin, profileLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     // Attendre que le chargement soit terminé
-    if (!loading && user) {
-      // Si l'utilisateur est connecté, rediriger vers le tableau de bord
-      navigate('/user/dashboard');
+    if (!loading && !profileLoading && user) {
+      // Si l'utilisateur est administrateur, rediriger vers l'interface admin
+      if (isAdmin) {
+        navigate('/admin/dashboard');
+      } else {
+        // Sinon, rediriger vers le tableau de bord utilisateur
+        navigate('/user/dashboard');
+      }
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, profileLoading, isAdmin, navigate]);
 
   // Pendant le chargement, afficher un indicateur de chargement
-  if (loading) {
+  if (loading || profileLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>

@@ -29,6 +29,7 @@ BEGIN
             role VARCHAR(255),
             location VARCHAR(255),
             bio TEXT,
+            is_admin BOOLEAN DEFAULT FALSE,
 
             -- Statistiques
             joined_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

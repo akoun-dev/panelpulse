@@ -43,7 +43,7 @@ export interface Invitation {
   id: string;
   panelId: string;
   email: string;
-  status: 'pending' | 'accepted' | 'rejected';
+  status: 'pending' | 'accepted' | 'rejected' | 'not_sent';
   createdAt: string;
   panelTitle?: string;
   panelDate?: string;
@@ -78,4 +78,24 @@ export interface Activity {
   action: string;
   target: string;
   details?: Record<string, unknown>;
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  avatar_url?: string;
+  company?: string;
+  role?: string;
+  location?: string;
+  bio?: string;
+  joined_date?: string;
+  panels_created?: number;
+  panels_participated?: number;
+  questions_answered?: number;
+  total_speaking_time?: number;
+  social_links?: Record<string, string>;
+  created_at?: string;
+  updated_at?: string;
+  is_admin?: boolean;
 }

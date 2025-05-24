@@ -1,12 +1,16 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/services/supabaseClient';
+import { UserProfile } from '@/types';
 
 // Types pour notre contexte d'authentification
 type AuthContextType = {
   session: Session | null;
   user: User | null;
+  profile: UserProfile | null;
+  isAdmin: boolean;
   loading: boolean;
+  profileLoading: boolean;
   signUp: (email: string, password: string, userData?: Record<string, any>) => Promise<{
     error: Error | null;
     data: any | null;
@@ -20,6 +24,7 @@ type AuthContextType = {
     error: Error | null;
     data: any | null;
   }>;
+  refreshProfile: () => Promise<void>;
 };
 
 // Création du contexte avec des valeurs par défaut
@@ -34,7 +39,45 @@ type AuthProviderProps = {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  // Fonction pour récupérer le profil utilisateur
+  const fetchUserProfile = async (userId: string) => {
+    if (!userId) return null;
+
+    try {
+      setProfileLoading(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Erreur lors de la récupération du profil:', error);
+        return null;
+      }
+
+      return data as UserProfile;
+    } catch (error) {
+      console.error('Erreur lors de la récupération du profil:', error);
+      return null;
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  // Fonction pour rafraîchir le profil utilisateur
+  const refreshProfile = async () => {
+    if (!user) return;
+
+    const userProfile = await fetchUserProfile(user.id);
+    setProfile(userProfile);
+    setIsAdmin(userProfile?.is_admin || false);
+  };
 
   useEffect(() => {
     // Récupérer la session actuelle
@@ -43,6 +86,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // Si l'utilisateur est connecté, récupérer son profil
+      if (session?.user) {
+        const userProfile = await fetchUserProfile(session.user.id);
+        setProfile(userProfile);
+        setIsAdmin(userProfile?.is_admin || false);
+      }
     };
 
     // Appel initial pour récupérer la session
@@ -50,10 +100,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // Configurer l'écouteur pour les changements d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Si l'utilisateur est connecté, récupérer son profil
+        if (session?.user) {
+          const userProfile = await fetchUserProfile(session.user.id);
+          setProfile(userProfile);
+          setIsAdmin(userProfile?.is_admin || false);
+        } else {
+          setProfile(null);
+          setIsAdmin(false);
+        }
       }
     );
 
@@ -117,11 +177,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const value = {
     session,
     user,
+    profile,
+    isAdmin,
     loading,
+    profileLoading,
     signUp,
     signIn,
     signOut,
     resetPassword,
+    refreshProfile,
   };
 
   // Rendu du provider avec les valeurs

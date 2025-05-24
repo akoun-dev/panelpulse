@@ -9,5 +9,10 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src')
     }
+  },
+  // Ajoutez cette configuration pour le serveur
+  server: {
+    host: '0.0.0.0', // Pour écouter sur toutes les interfaces réseau
+    port: 3000 // Ou un autre port de votre choix
   }
 })

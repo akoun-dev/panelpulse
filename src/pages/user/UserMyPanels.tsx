@@ -1,26 +1,30 @@
 import { DataTable } from '@/components/ui/data-table'
 import { panelsColumns } from '@/components/layout/user/panels-columns'
-import { Panel, PreparedQA, Panelist } from '@/types'
+import { invitationsColumns } from '@/components/layout/user/invitations-columns'
+import { Panel, PreparedQA, Panelist, Invitation } from '@/types'
 import { Button } from '@/components/ui/button'
 import { ColumnDef } from '@tanstack/react-table'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, MessageSquare, Users, Eye, EyeOff, Search, RefreshCw } from 'lucide-react'
+import { Plus, MessageSquare, Users, Eye, EyeOff, Search, RefreshCw, Mail } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getUserPanels } from '@/services/panelService'
+import { getAllInvitations, acceptInvitation, rejectInvitation } from '@/services/invitationService'
 import { useToast } from '@/components/ui/use-toast'
 
 export default function UserMyPanels() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const [panels, setPanels] = useState<Panel[]>([])
+  const [invitations, setInvitations] = useState<Invitation[]>([])
   const [selectedPanel, setSelectedPanel] = useState<Panel | null>(null)
   const [activeTab, setActiveTab] = useState('panels')
   const [searchTerm, setSearchTerm] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingInvitations, setIsLoadingInvitations] = useState(false)
 
   // Récupérer les panels de l'utilisateur depuis Supabase
   const fetchPanels = async () => {
@@ -40,8 +44,92 @@ export default function UserMyPanels() {
     }
   }
 
+  // Récupérer les invitations de l'utilisateur
+  const fetchInvitations = async () => {
+    setIsLoadingInvitations(true)
+    try {
+      const userInvitations = await getAllInvitations()
+      setInvitations(userInvitations)
+    } catch (error) {
+      console.error('Erreur lors de la récupération des invitations:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de récupérer vos invitations. Veuillez réessayer.",
+        variant: "destructive" as any
+      })
+    } finally {
+      setIsLoadingInvitations(false)
+    }
+  }
+
+  // Accepter une invitation
+  const handleAcceptInvitation = async (invitationId: string) => {
+    try {
+      const success = await acceptInvitation(invitationId)
+      if (success) {
+        // Mettre à jour l'état local
+        setInvitations(invitations.map(inv =>
+          inv.id === invitationId ? {...inv, status: 'accepted'} : inv
+        ))
+
+        toast({
+          title: "Invitation acceptée",
+          description: "Vous avez accepté l'invitation avec succès.",
+        })
+
+        // Rafraîchir les panels pour inclure le nouveau panel
+        fetchPanels()
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Impossible d'accepter l'invitation. Veuillez réessayer.",
+          variant: "destructive" as any
+        })
+      }
+    } catch (error) {
+      console.error(`Erreur lors de l'acceptation de l'invitation ${invitationId}:`, error)
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'acceptation de l'invitation.",
+        variant: "destructive" as any
+      })
+    }
+  }
+
+  // Rejeter une invitation
+  const handleRejectInvitation = async (invitationId: string) => {
+    try {
+      const success = await rejectInvitation(invitationId)
+      if (success) {
+        // Mettre à jour l'état local
+        setInvitations(invitations.map(inv =>
+          inv.id === invitationId ? {...inv, status: 'rejected'} : inv
+        ))
+
+        toast({
+          title: "Invitation rejetée",
+          description: "Vous avez rejeté l'invitation.",
+        })
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Impossible de rejeter l'invitation. Veuillez réessayer.",
+          variant: "destructive" as any
+        })
+      }
+    } catch (error) {
+      console.error(`Erreur lors du rejet de l'invitation ${invitationId}:`, error)
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors du rejet de l'invitation.",
+        variant: "destructive" as any
+      })
+    }
+  }
+
   useEffect(() => {
     fetchPanels()
+    fetchInvitations()
   }, [])
 
   const handleViewQA = (panel: Panel) => {
@@ -51,7 +139,15 @@ export default function UserMyPanels() {
 
   const handleRefresh = () => {
     fetchPanels()
+    fetchInvitations()
   }
+
+  // Utiliser les colonnes d'invitation existantes
+  const invitationsColumnsConfig = invitationsColumns({
+    handleAccept: handleAcceptInvitation,
+    handleReject: handleRejectInvitation,
+    navigate
+  })
 
   return (
     <div className="p-6 space-y-6">
@@ -66,6 +162,14 @@ export default function UserMyPanels() {
               <TabsTrigger value="qa" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800">
                 Questions/Réponses
               </TabsTrigger>
+              <TabsTrigger value="invitations" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800">
+                Invitations
+                {invitations.filter(inv => inv.status === 'pending').length > 0 && (
+                  <Badge variant="default" className="ml-2 bg-primary text-primary-foreground">
+                    {invitations.filter(inv => inv.status === 'pending').length}
+                  </Badge>
+                )}
+              </TabsTrigger>
             </TabsList>
           </div>
           <div className="flex items-center gap-2">
@@ -73,9 +177,9 @@ export default function UserMyPanels() {
               variant="outline"
               size="icon"
               onClick={handleRefresh}
-              disabled={isLoading}
+              disabled={isLoading || isLoadingInvitations}
             >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 ${isLoading || isLoadingInvitations ? 'animate-spin' : ''}`} />
             </Button>
             <Button onClick={() => navigate('/user/create-panel')} className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
               <Plus className="h-4 w-4" />
@@ -231,6 +335,36 @@ export default function UserMyPanels() {
                 <Button onClick={() => navigate('/user/create-panel')} className="bg-primary text-primary-foreground hover:bg-primary/90">
                   Créer un panel avec des questions
                 </Button>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="invitations" className="mt-0">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">
+              Mes Invitations
+              {invitations.filter(inv => inv.status === 'pending').length > 0 && (
+                <Badge variant="outline" className="ml-2">
+                  {invitations.filter(inv => inv.status === 'pending').length} en attente
+                </Badge>
+              )}
+            </h2>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-md">
+            <DataTable
+              columns={invitationsColumnsConfig}
+              data={invitations}
+            />
+
+            {invitations.length === 0 && (
+              <div className="text-center py-12 bg-muted/10 rounded-lg">
+                <Mail className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">Aucune invitation</h3>
+                <p className="text-muted-foreground mb-4">
+                  Vous n'avez pas encore reçu d'invitations à des panels.
+                </p>
               </div>
             )}
           </div>
